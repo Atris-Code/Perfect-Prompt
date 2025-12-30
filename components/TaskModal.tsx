@@ -40,7 +40,7 @@ const TaskModal: React.FC<TaskModalProps> = ({ onClose, onSave }) => {
                 onChange={(e) => { setTitle(e.target.value); setError(''); }}
                 error={error}
                 required
-                placeholder="Ej: Prompt para campaña de marketing Q3"
+                placeholder="Ej: Análisis de Viabilidad - Proyecto Alpha"
                 autoFocus
               />
         </div>

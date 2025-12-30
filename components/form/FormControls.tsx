@@ -1,3 +1,5 @@
+
+
 import React from 'react';
 
 interface FormInputProps extends React.InputHTMLAttributes<HTMLInputElement> {
@@ -8,7 +10,7 @@ interface FormInputProps extends React.InputHTMLAttributes<HTMLInputElement> {
 
 export const FormInput: React.FC<FormInputProps> = ({ label, error, required, ...props }) => (
   <div className="flex flex-col">
-    <label htmlFor={props.id} className="mb-2 font-medium text-gray-700">
+    <label htmlFor={props.id} className="mb-2 font-medium text-slate-800">
       {label}
       {required && <span className="text-red-500 ml-1">*</span>}
     </label>
@@ -31,7 +33,7 @@ interface FormTextareaProps extends React.TextareaHTMLAttributes<HTMLTextAreaEle
 
 export const FormTextarea: React.FC<FormTextareaProps> = ({ label, error, required, ...props }) => (
   <div className="flex flex-col">
-    <label htmlFor={props.id} className="mb-2 font-medium text-gray-700">
+    <label htmlFor={props.id} className="mb-2 font-medium text-slate-800">
       {label}
       {required && <span className="text-red-500 ml-1">*</span>}
     </label>
@@ -55,7 +57,7 @@ interface FormSelectProps extends React.SelectHTMLAttributes<HTMLSelectElement> 
 
 export const FormSelect: React.FC<FormSelectProps> = ({ label, children, className, error, required, ...props }) => (
   <div className="flex flex-col">
-    <label htmlFor={props.id} className="mb-2 font-medium text-gray-700">
+    <label htmlFor={props.id} className="mb-2 font-medium text-slate-800">
       {label}
       {required && <span className="text-red-500 ml-1">*</span>}
     </label>

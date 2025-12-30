@@ -1,10 +1,9 @@
 // FIX: This file was missing, so its content has been created to implement the Hyperion-9 monitoring dashboard.
 import React, { useState, useEffect } from 'react';
-import type { ReactorState, ReactorStatus, OrionViewType, View, DEXListing } from '../../types';
+// FIX: To ensure consistent module resolution, removed the .ts extension from the import path.
+import type { ReactorState, ReactorStatus, OrionViewType, View, DEXListing, FleetCommand } from '../../types';
 import { useTranslations } from '../../contexts/LanguageContext';
 import { CO_PRESETS } from '../../data/coPresets';
-
-type FleetCommand = { type: 'APPLY_PRESET'; payload: string } | { type: 'START_ALL' } | { type: 'STOP_ALL' };
 
 const ORION_VIEWS: { id: OrionViewType; name: string }[] = [
     { id: 'production', name: 'view.hyperion.productionView' },
@@ -278,7 +277,7 @@ export const Hyperion9: React.FC<Hyperion9Props> = ({ reactors, navigateToHmi, s
             </div>
 
              <div className="mb-8 p-4 bg-slate-800/50 border border-slate-700 rounded-lg">
-                <h3 className="text-lg font-bold mb-3 text-cyan-400">Comandos de Flota</h3>
+                <h3 className="text-lg font-bold mb-3 text-cyan-400">{t('view.hyperion.fleetCommands.title')}</h3>
                 <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
                     <div className="flex items-center gap-2">
                         <select
@@ -286,7 +285,7 @@ export const Hyperion9: React.FC<Hyperion9Props> = ({ reactors, navigateToHmi, s
                             onChange={(e) => setSelectedPreset(e.target.value)}
                             className="w-full bg-slate-700 border border-slate-600 text-white rounded-md p-2 text-sm"
                         >
-                            <option value="">Seleccionar preset...</option>
+                            <option value="">{t('view.hyperion.fleetCommands.selectPreset')}</option>
                             {CO_PRESETS.map(p => <option key={p.name} value={p.name}>{p.name}</option>)}
                         </select>
                         <button
@@ -294,11 +293,11 @@ export const Hyperion9: React.FC<Hyperion9Props> = ({ reactors, navigateToHmi, s
                             disabled={!selectedPreset}
                             className="bg-blue-600 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded-lg text-sm disabled:bg-slate-600"
                         >
-                            Aplicar
+                            {t('view.hyperion.fleetCommands.apply')}
                         </button>
                     </div>
-                    <button onClick={() => onFleetCommand({ type: 'START_ALL' })} className="bg-green-600 hover:bg-green-700 text-white font-bold py-2 px-4 rounded-lg text-sm">Iniciar Todos</button>
-                    <button onClick={() => onFleetCommand({ type: 'STOP_ALL' })} className="bg-red-600 hover:bg-red-700 text-white font-bold py-2 px-4 rounded-lg text-sm">Detener Todos</button>
+                    <button onClick={() => onFleetCommand({ type: 'START_ALL' })} className="bg-green-600 hover:bg-green-700 text-white font-bold py-2 px-4 rounded-lg text-sm">{t('view.hyperion.fleetCommands.startAll')}</button>
+                    <button onClick={() => onFleetCommand({ type: 'STOP_ALL' })} className="bg-red-600 hover:bg-red-700 text-white font-bold py-2 px-4 rounded-lg text-sm">{t('view.hyperion.fleetCommands.stopAll')}</button>
                 </div>
             </div>
 

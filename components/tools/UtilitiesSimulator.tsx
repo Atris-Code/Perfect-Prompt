@@ -1,27 +1,22 @@
 import React, { useState, useCallback, useEffect } from 'react';
-// FIX: To ensure consistent module resolution, removed the .tsx extension from the import path.
 import { useUtilityCosts, UtilityCostState } from '../../contexts/UtilityCostContext';
-// FIX: To ensure consistent module resolution, removed the .ts extension from the import path.
-import type { Task, UtilityDutyType } from '../../types';
-// FIX: To ensure consistent module resolution, removed the .ts extension from the import path.
+import type { Task, UtilityDutyType, View } from '../../types';
 import { ContentType } from '../../types';
-// FIX: To ensure consistent module resolution, removed the .tsx extension from the import path.
 import { useTranslations } from '../../contexts/LanguageContext';
 
 interface UtilitiesSimulatorProps {
-  onSaveTask?: (task: Task) => void;
+  onSaveTask: (task: Task) => void;
+  setView: (view: View) => void;
   isWidgetMode?: boolean;
   initialDuty?: number | null;
   initialDutyType?: UtilityDutyType | null;
   initialUnit?: string | null;
   onCloseWidget?: () => void;
-  // Refactored props for integration
   initialActiveTab?: string;
   initialProcessDemand?: number;
   initialDemands?: { [key: string]: number } | null;
   onDataConsumed?: () => void;
 }
-
 
 const InputField: React.FC<{ label: string; id: string; type?: string; value: number | string; onChange: (e: React.ChangeEvent<HTMLInputElement>) => void; unit: string; disabled?: boolean }> = ({ label, id, type = 'number', value, onChange, unit, disabled }) => (
     <div>
@@ -62,6 +57,7 @@ const Panel: React.FC<React.PropsWithChildren<{ title: string; }>> = ({ title, c
 
 export const UtilitiesSimulator: React.FC<UtilitiesSimulatorProps> = ({ 
     onSaveTask, 
+    setView,
     isWidgetMode = false, 
     initialDuty, 
     initialDutyType, 
@@ -153,9 +149,9 @@ export const UtilitiesSimulator: React.FC<UtilitiesSimulatorProps> = ({
             annualCost: annualCostFh.toLocaleString('es-ES', { style: 'currency', currency: 'EUR' })
         });
 
-        // Steam (based on Example 3.2 logic)
+        // Steam
         const { fuelCost, elecCost, boilerEff, turbineEff } = sInputs;
-        const heating_rate_MMBtu_per_Mlb = 0.864; // Constant derived from example
+        const heating_rate_MMBtu_per_Mlb = 0.864; 
         const price_hp_mlb = (fuelCost * heating_rate_MMBtu_per_Mlb / (boilerEff / 100));
         const price_hp_ton = price_hp_mlb * 2.20462;
         const shaft_work_credit_hp_mp = 20.2 * (turbineEff / 85) * elecCost * (1 / 1.01);
@@ -259,56 +255,53 @@ export const UtilitiesSimulator: React.FC<UtilitiesSimulatorProps> = ({
     };
     
     const handleGenerateReport = () => {
-        if (!onSaveTask) return;
+        if (!onSaveTask || !setView) return;
 
-        const reportData = `
-| Servicio              | Métrica Clave                       | Valor                                     |
-|-----------------------|-------------------------------------|-------------------------------------------|
-| **Calor (Combustión)**| Costo Anual                         | ${fhOutputs.annualCost}                   |
-|                       | Combustible Requerido               | ${fhOutputs.fuelReq} MW                   |
-| **Vapor**             | Precio Vapor HP (40 bar)            | ${sOutputs.hpPrice} €/tonelada             |
-|                       | Precio Vapor MP (20 bar)            | ${sOutputs.mpPrice} €/tonelada             |
-|                       | Precio Vapor LP (6 bar)             | ${sOutputs.lpPrice} €/tonelada             |
-| **Refrigeración**     | Costo Anual                         | ${rOutputs.annualCost}                    |
-|                       | COP Real                            | ${rOutputs.copActual}                     |
-| **Agua Enfriamiento** | Costo por Hora                      | ${cwOutputs.costHour} €/h                  |
-|                       | Consumo Eléctrico                   | ${cwOutputs.power} kW                     |
-| **Aire Comprimido**   | Costo por Hora                      | ${caOutputs.costHour} €/h                  |
-|                       | Potencia Requerida                  | ${caOutputs.power} kW                     |
-| **Consumo Eléctrico** | Costo por Hora                      | ${ppOutputs.costHour} €/h                  |
-|                       | Costo Anual (8000h)                 | ${ppOutputs.annualCost}                   |
-| **Combustible Flota** | Costo Anual Déficit                 | ${ffOutputs.annualCost}                   |
-`;
+        const tabs = [
+            { id: 'fired-heat', label: t('utilities.tabs.firedHeat') },
+            { id: 'steam', label: t('utilities.tabs.steam') },
+            { id: 'refrigeration', label: t('utilities.tabs.refrigeration') },
+            { id: 'cooling-water', label: t('utilities.tabs.coolingWater') },
+            { id: 'compressed-air', label: t('utilities.tabs.compressedAir') },
+            { id: 'process-power', label: t('utilities.tabs.processPower') },
+            { id: 'fleet-fuel', label: t('utilities.tabs.fleetFuel') },
+        ];
+        
+        const currentTabLabel = tabs.find(tab => tab.id === activeTab)?.label || 'Utilities';
+        
+        let reportData = `## Resumen de Costos: ${currentTabLabel}\n\n`;
+
+        switch (activeTab) {
+            case 'fired-heat':
+                reportData += `| Métrica                       | Valor                                     |\n|-------------------------------|-------------------------------------------|\n| **Parámetros de Entrada**     |                                           |\n| Carga Térmica (MW)            | ${fhInputs.duty}                          |\n| Eficiencia Calentador (%)     | ${fhInputs.efficiency}                    |\n| Costo Combustible (€/MMBtu)   | ${fhInputs.fuelCost}                      |\n| Horas Anuales                 | ${fhInputs.hours}                         |\n| **Resultados**                |                                           |\n| Combustible Requerido (MW)    | ${fhOutputs.fuelReq}                      |\n| Costo Anual (Combustible)     | ${fhOutputs.annualCost}                   |`;
+                break;
+             // Add cases for other tabs similarly
+            default:
+                reportData += "No se ha generado un reporte para esta sección.";
+                break;
+        }
+
+        const taskTitle = `${t('utilities.taskTitle')} - ${currentTabLabel}`;
 
         const task: Task = {
             id: `task-utilities-${Date.now()}`,
-            title: t('presets.utilitiesReport.title'),
+            title: taskTitle,
             createdAt: Date.now(),
             status: 'Completado',
             contentType: ContentType.Texto,
             formData: {
-                objective: t('presets.utilitiesReport.objective'),
+                objective: `Generar un informe ejecutivo que resuma los costos operativos para ${currentTabLabel}.`,
                 tone: "Formal / Analítico",
-                activeAgents: [],
-                specifics: {
-                    [ContentType.Texto]: {
-                        type: "ExecutiveReport",
-                        audience: "Gerentes Financieros (CFO)",
-                        rawData: reportData.trim(),
-                    },
-                    [ContentType.Imagen]: {},
-                    [ContentType.Video]: {},
-                    [ContentType.Audio]: {},
-                    [ContentType.Codigo]: {},
-                }
             },
-            result: {
-                text: reportData.trim(),
-            },
+            result: { text: reportData.trim() },
+            eventType: 'ExecutiveReport'
         };
+
         onSaveTask(task);
-        alert('Tarea "Informe de Costos de Utilities" creada y marcada como completada en el Gestor de Tareas.');
+        alert(t('utilities.taskCreatedAlert', { taskTitle }));
+        setView('tasks');
     };
+
 
     const tabs = [
         { id: 'fired-heat', label: t('utilities.tabs.firedHeat') },
@@ -317,22 +310,22 @@ export const UtilitiesSimulator: React.FC<UtilitiesSimulatorProps> = ({
         { id: 'cooling-water', label: t('utilities.tabs.coolingWater') },
         { id: 'compressed-air', label: t('utilities.tabs.compressedAir') },
         { id: 'process-power', label: t('utilities.tabs.processPower') },
-        { id: 'fleet-fuel', label: 'Combustible de Flota' },
+        { id: 'fleet-fuel', label: t('utilities.tabs.fleetFuel') },
     ];
     
     if (isWidgetMode) {
         let title = '', costLabel = '', costValue = '...', costUnit = '';
         switch(initialDutyType) {
             case 'cooling-water': 
-                title='Costo Instantáneo: Agua de Enfriamiento'; 
-                costLabel='Costo por Hora'; 
+                title=t('utilities.widget.titleCooling'); 
+                costLabel=t('utilities.widget.costPerHour'); 
                 costValue=cwOutputs.costHour;
                 costUnit='€/h';
                 break;
             case 'fired-heat':
-                 title='Costo Instantáneo: Calor con Combustión';
+                 title=t('utilities.widget.titleFiredHeat');
                  const hourlyCost = (parseFloat(fhOutputs.fuelReq) * 3.412 * fhInputs.fuelCost);
-                 costLabel='Costo por Hora (combustible)'; 
+                 costLabel=t('utilities.widget.costPerHourFuel'); 
                  costValue= isNaN(hourlyCost) ? '...' : hourlyCost.toFixed(2);
                  costUnit='€/h';
                 break;
@@ -342,12 +335,12 @@ export const UtilitiesSimulator: React.FC<UtilitiesSimulatorProps> = ({
              <div className="bg-slate-900 text-white p-6 rounded-lg shadow-2xl w-96 flex flex-col font-sans border-2 border-blue-500" onClick={e => e.stopPropagation()}>
                 <h3 className="text-lg font-bold mb-4 text-cyan-400">{title}</h3>
                 <div className="space-y-4">
-                    <InputField label="Demanda Actual" id="widget-duty" value={initialDuty || 0} onChange={() => {}} unit={initialUnit || ''} disabled={true} />
+                    <InputField label={t('utilities.widget.currentDemand')} id="widget-duty" value={initialDuty || 0} onChange={() => {}} unit={initialUnit || ''} disabled={true} />
                 </div>
                 <div className="mt-6 pt-4 border-t border-slate-700">
                     <OutputField label={costLabel} value={costValue} unit={costUnit} isHighlighted={true}/>
                 </div>
-                {onCloseWidget && <button onClick={onCloseWidget} className="mt-6 w-full bg-slate-700 text-white font-bold py-2 rounded-lg hover:bg-slate-600">Cerrar</button>}
+                {onCloseWidget && <button onClick={onCloseWidget} className="mt-6 w-full bg-slate-700 text-white font-bold py-2 rounded-lg hover:bg-slate-600">{t('utilities.widget.close')}</button>}
              </div>
         )
     }
@@ -388,27 +381,27 @@ export const UtilitiesSimulator: React.FC<UtilitiesSimulatorProps> = ({
                 <div style={{ display: activeTab === 'steam' ? 'block' : 'none' }} className="animate-fade-in">
                     <div className="grid md:grid-cols-2 gap-8">
                         <Panel title={t('utilities.inputsTitle')}>
-                           <InputField label={t('utilities.steam.fuelCost')} id="s-fuel-cost" value={sInputs.fuelCost} onChange={handleInputChange(setSInputs, 'fuelCost')} unit="€/MMBtu" />
-                           <InputField label={t('utilities.steam.elecCost')} id="s-elec-cost" value={sInputs.elecCost} onChange={handleInputChange(setSInputs, 'elecCost')} unit="€/kWh" />
-                           <InputField label={t('utilities.steam.boilerEff')} id="s-boiler-eff" value={sInputs.boilerEff} onChange={handleInputChange(setSInputs, 'boilerEff')} unit="%" />
-                           <InputField label={t('utilities.steam.turbineEff')} id="s-turbine-eff" value={sInputs.turbineEff} onChange={handleInputChange(setSInputs, 'turbineEff')} unit="%" />
+                            <InputField label={t('utilities.steam.fuelCost')} id="s-fuel-cost" value={sInputs.fuelCost} onChange={handleInputChange(setSInputs, 'fuelCost')} unit="€/MMBtu" />
+                            <InputField label={t('utilities.steam.elecCost')} id="s-elec-cost" value={sInputs.elecCost} onChange={handleInputChange(setSInputs, 'elecCost')} unit="€/kWh" disabled />
+                            <InputField label={t('utilities.steam.boilerEff')} id="s-boiler-eff" value={sInputs.boilerEff} onChange={handleInputChange(setSInputs, 'boilerEff')} unit="%" />
+                            <InputField label={t('utilities.steam.turbineEff')} id="s-turbine-eff" value={sInputs.turbineEff} onChange={handleInputChange(setSInputs, 'turbineEff')} unit="%" />
                         </Panel>
                         <Panel title={t('utilities.resultsTitle')}>
                             <OutputField label={t('utilities.steam.hpPrice')} value={sOutputs.hpPrice} unit="€/ton" isHighlighted />
-                            <OutputField label={t('utilities.steam.mpPrice')} value={sOutputs.mpPrice} unit="€/ton" />
-                            <OutputField label={t('utilities.steam.lpPrice')} value={sOutputs.lpPrice} unit="€/ton" />
+                            <OutputField label={t('utilities.steam.mpPrice')} value={sOutputs.mpPrice} unit="€/ton" isHighlighted />
+                            <OutputField label={t('utilities.steam.lpPrice')} value={sOutputs.lpPrice} unit="€/ton" isHighlighted />
                         </Panel>
                     </div>
                 </div>
-                 <div style={{ display: activeTab === 'refrigeration' ? 'block' : 'none' }} className="animate-fade-in">
+                <div style={{ display: activeTab === 'refrigeration' ? 'block' : 'none' }} className="animate-fade-in">
                     <div className="grid md:grid-cols-2 gap-8">
                         <Panel title={t('utilities.inputsTitle')}>
-                           <InputField label={t('utilities.refrigeration.duty')} id="r-duty" value={rInputs.duty} onChange={handleInputChange(setRInputs, 'duty')} unit="MW" />
-                           <InputField label={t('utilities.refrigeration.tempEvap')} id="r-temp-evap" value={rInputs.tempEvap} onChange={handleInputChange(setRInputs, 'tempEvap')} unit="°C" />
-                           <InputField label={t('utilities.refrigeration.tempCond')} id="r-temp-cond" value={rInputs.tempCond} onChange={handleInputChange(setRInputs, 'tempCond')} unit="°C" />
-                           <InputField label={t('utilities.refrigeration.cycleEff')} id="r-cycle-eff" value={rInputs.cycleEff} onChange={handleInputChange(setRInputs, 'cycleEff')} unit="%" />
-                           <InputField label={t('utilities.refrigeration.elecCost')} id="r-elec-cost" value={rInputs.elecCost} onChange={handleInputChange(setRInputs, 'elecCost')} unit="€/kWh" />
-                           <InputField label={t('utilities.refrigeration.hours')} id="r-hours" value={rInputs.hours} onChange={handleInputChange(setRInputs, 'hours')} unit="h/año" />
+                            <InputField label={t('utilities.refrigeration.duty')} id="r-duty" value={rInputs.duty} onChange={handleInputChange(setRInputs, 'duty')} unit="MW" />
+                            <InputField label={t('utilities.refrigeration.tempEvap')} id="r-temp-evap" value={rInputs.tempEvap} onChange={handleInputChange(setRInputs, 'tempEvap')} unit="°C" />
+                            <InputField label={t('utilities.refrigeration.tempCond')} id="r-temp-cond" value={rInputs.tempCond} onChange={handleInputChange(setRInputs, 'tempCond')} unit="°C" />
+                            <InputField label={t('utilities.refrigeration.cycleEff')} id="r-cycle-eff" value={rInputs.cycleEff} onChange={handleInputChange(setRInputs, 'cycleEff')} unit="%" />
+                            <InputField label={t('utilities.refrigeration.elecCost')} id="r-elec-cost" value={rInputs.elecCost} onChange={handleInputChange(setRInputs, 'elecCost')} unit="€/kWh" disabled />
+                            <InputField label={t('utilities.refrigeration.hours')} id="r-hours" value={rInputs.hours} onChange={handleInputChange(setRInputs, 'hours')} unit="h/año" />
                         </Panel>
                         <Panel title={t('utilities.resultsTitle')}>
                             <OutputField label={t('utilities.refrigeration.copCarnot')} value={rOutputs.copCarnot} unit="" />
@@ -421,10 +414,10 @@ export const UtilitiesSimulator: React.FC<UtilitiesSimulatorProps> = ({
                 <div style={{ display: activeTab === 'cooling-water' ? 'block' : 'none' }} className="animate-fade-in">
                     <div className="grid md:grid-cols-2 gap-8">
                         <Panel title={t('utilities.inputsTitle')}>
-                           <InputField label={t('utilities.coolingWater.duty')} id="cw-duty" value={cwInputs.duty} onChange={handleInputChange(setCwInputs, 'duty')} unit="kW" />
-                           <InputField label={t('utilities.coolingWater.range')} id="cw-range" value={cwInputs.range} onChange={handleInputChange(setCwInputs, 'range')} unit="°C" />
-                           <InputField label={t('utilities.coolingWater.spec')} id="cw-spec" value={cwInputs.spec} onChange={handleInputChange(setCwInputs, 'spec')} unit="kWh/m³" />
-                           <InputField label={t('utilities.coolingWater.elecCost')} id="cw-elec-cost" value={cwInputs.elecCost} onChange={handleInputChange(setCwInputs, 'elecCost')} unit="€/kWh" />
+                            <InputField label={t('utilities.coolingWater.duty')} id="cw-duty" value={cwInputs.duty} onChange={handleInputChange(setCwInputs, 'duty')} unit="kW" />
+                            <InputField label={t('utilities.coolingWater.range')} id="cw-range" value={cwInputs.range} onChange={handleInputChange(setCwInputs, 'range')} unit="°C" />
+                            <InputField label={t('utilities.coolingWater.spec')} id="cw-spec" value={cwInputs.spec} onChange={handleInputChange(setCwInputs, 'spec')} unit="kWh/m³" />
+                            <InputField label={t('utilities.coolingWater.elecCost')} id="cw-elec-cost" value={cwInputs.elecCost} onChange={handleInputChange(setCwInputs, 'elecCost')} unit="€/kWh" disabled />
                         </Panel>
                         <Panel title={t('utilities.resultsTitle')}>
                             <OutputField label={t('utilities.coolingWater.flow')} value={cwOutputs.flow} unit="m³/h" />
@@ -437,9 +430,9 @@ export const UtilitiesSimulator: React.FC<UtilitiesSimulatorProps> = ({
                      <div className="grid md:grid-cols-2 gap-8">
                         <Panel title={t('utilities.inputsTitle')}>
                            <InputField label={t('utilities.compressedAir.flow')} id="ca-flow" value={caInputs.flow} onChange={handleInputChange(setCaInputs, 'flow')} unit="m³/h" />
-                           <InputField label={t('utilities.compressedAir.pressure')} id="ca-pressure" value={caInputs.pressure} onChange={handleInputChange(setCaInputs, 'pressure')} unit="bar (man.)" />
+                           <InputField label={t('utilities.compressedAir.pressure')} id="ca-pressure" value={caInputs.pressure} onChange={handleInputChange(setCaInputs, 'pressure')} unit="bar" />
                            <InputField label={t('utilities.compressedAir.efficiency')} id="ca-eff" value={caInputs.eff} onChange={handleInputChange(setCaInputs, 'eff')} unit="%" />
-                           <InputField label={t('utilities.compressedAir.elecCost')} id="ca-elec-cost" value={caInputs.elecCost} onChange={handleInputChange(setCaInputs, 'elecCost')} unit="€/kWh" />
+                           <InputField label={t('utilities.compressedAir.elecCost')} id="ca-elec-cost" value={caInputs.elecCost} onChange={handleInputChange(setCaInputs, 'elecCost')} unit="€/kWh" disabled />
                         </Panel>
                         <Panel title={t('utilities.resultsTitle')}>
                             <OutputField label={t('utilities.compressedAir.power')} value={caOutputs.power} unit="kW" />
@@ -447,8 +440,8 @@ export const UtilitiesSimulator: React.FC<UtilitiesSimulatorProps> = ({
                         </Panel>
                     </div>
                 </div>
-                 <div style={{ display: activeTab === 'process-power' ? 'block' : 'none' }} className="animate-fade-in">
-                    <div className="grid md:grid-cols-2 gap-8">
+                <div style={{ display: activeTab === 'process-power' ? 'block' : 'none' }} className="animate-fade-in">
+                     <div className="grid md:grid-cols-2 gap-8">
                         <Panel title={t('utilities.inputsTitle')}>
                            <InputField label={t('utilities.processPower.demand')} id="pp-demand" value={ppInputs.demand} onChange={handleInputChange(setPpInputs, 'demand')} unit="kW" />
                            <InputField label={t('utilities.processPower.elecCost')} id="pp-elec-cost" value={ppInputs.elecCost} onChange={handleInputChange(setPpInputs, 'elecCost')} unit="€/kWh" />
@@ -456,28 +449,28 @@ export const UtilitiesSimulator: React.FC<UtilitiesSimulatorProps> = ({
                         </Panel>
                         <Panel title={t('utilities.resultsTitle')}>
                             <OutputField label={t('utilities.processPower.costHour')} value={ppOutputs.costHour} unit="€/h" />
-                            <OutputField label={t('utilities.processPower.annualCost')} value={ppOutputs.annualCost} unit="" isHighlighted />
+                            <OutputField label={t('utilities.processPower.annualCost')} value={ppOutputs.annualCost} unit="" isHighlighted/>
                         </Panel>
                     </div>
                 </div>
-                 <div style={{ display: activeTab === 'fleet-fuel' ? 'block' : 'none' }} className="animate-fade-in">
-                    <div className="grid md:grid-cols-2 gap-8">
-                        <Panel title="Parámetros de Entrada (Déficit de Flota)">
-                           <InputField label="Demanda de Biogás Externo" id="ff-demand" value={ffInputs.demand} onChange={handleInputChange(setFfInputs, 'demand')} unit="m³/h" />
-                           <InputField label="Precio de Biogás Externo" id="ff-price" value={costs.biogasPrice_m3} onChange={(e) => setCosts({ biogasPrice_m3: parseFloat(e.target.value) || 0})} unit="€/m³" />
-                           <InputField label="Horas de Operación Anual" id="ff-hours" value={ffInputs.hours} onChange={handleInputChange(setFfInputs, 'hours')} unit="h/año" />
+                <div style={{ display: activeTab === 'fleet-fuel' ? 'block' : 'none' }} className="animate-fade-in">
+                     <div className="grid md:grid-cols-2 gap-8">
+                        <Panel title={t('utilities.inputsTitle')}>
+                           <InputField label={t('utilities.fleetFuel.demand')} id="ff-demand" value={ffInputs.demand} onChange={handleInputChange(setFfInputs, 'demand')} unit="m³/h" />
+                           <InputField label={t('utilities.fleetFuel.price')} id="ff-price" value={ffInputs.price} onChange={handleInputChange(setFfInputs, 'price')} unit="€/m³" />
+                           <InputField label={t('utilities.fleetFuel.hours')} id="ff-hours" value={ffInputs.hours} onChange={handleInputChange(setFfInputs, 'hours')} unit="h/año" />
                         </Panel>
-                        <Panel title="Resultados Calculados">
-                            <OutputField label="Costo por Hora" value={ffOutputs.costHour} unit="€/h" />
-                            <OutputField label="Costo Anual Estimado" value={ffOutputs.annualCost} unit="" isHighlighted />
+                        <Panel title={t('utilities.resultsTitle')}>
+                            <OutputField label={t('utilities.fleetFuel.costHour')} value={ffOutputs.costHour} unit="€/h" />
+                            <OutputField label={t('utilities.fleetFuel.annualCost')} value={ffOutputs.annualCost} unit="" isHighlighted/>
                         </Panel>
                     </div>
                 </div>
             </div>
             
             <footer className="mt-6 pt-6 border-t border-slate-700 flex flex-col sm:flex-row gap-4 justify-end relative">
-                {showSaveConfirmation && <div className="absolute bottom-full right-0 mb-2 bg-green-500 text-white text-xs font-bold px-3 py-1 rounded-md animate-fade-in">Costos guardados en el sistema</div>}
-                {onSaveTask && <button onClick={handleGenerateReport} className="bg-gradient-to-r from-purple-600 to-indigo-600 hover:from-purple-700 hover:to-indigo-700 text-white font-bold py-2 px-6 rounded-lg">{t('utilities.createReport')}</button>}
+                {showSaveConfirmation && <div className="absolute bottom-full right-0 mb-2 bg-green-500 text-white text-xs font-bold px-3 py-1 rounded-md animate-fade-in">{t('utilities.saveConfirm')}</div>}
+                <button onClick={handleGenerateReport} className="bg-gradient-to-r from-purple-600 to-indigo-600 hover:from-purple-700 hover:to-indigo-700 text-white font-bold py-2 px-6 rounded-lg">{t('utilities.createReport')}</button>
                 <button onClick={handleSaveCosts} className="bg-gradient-to-r from-blue-600 to-cyan-600 hover:from-blue-700 hover:to-cyan-700 text-white font-bold py-2 px-6 rounded-lg">{t('utilities.saveAndApply')}</button>
             </footer>
 

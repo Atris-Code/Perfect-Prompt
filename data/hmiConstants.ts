@@ -1,11 +1,11 @@
 import type { HMIState } from '../types';
 
 export const OFF_STATE: HMIState = {
+  systemMode: 'APAGADO',
   targetTemp: 500.0,
   residenceTime: 1.5,
   oxygenConcentration: 0.0,
   agentMode: 'Automático (PID)',
-  systemMode: 'APAGADO',
   reactorTemp: 25.00,
   reactorWallTemp: 24.99,
   reactorPressure: 1.01,
@@ -58,11 +58,11 @@ export const OFF_STATE: HMIState = {
 };
 
 export const RUNNING_STATE: HMIState = {
+  systemMode: 'ESTABLE',
   targetTemp: 500.0,
   residenceTime: 1.5,
   oxygenConcentration: 0.0,
   agentMode: 'Automático (PID)',
-  systemMode: 'ESTABLE',
   reactorTemp: 499.57,
   reactorWallTemp: 489.98,
   reactorPressure: 1.11,

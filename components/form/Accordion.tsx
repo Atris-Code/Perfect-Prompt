@@ -4,12 +4,25 @@ interface AccordionProps {
   title: string;
   children: React.ReactNode;
   defaultOpen?: boolean;
+  isOpen?: boolean;
+  onToggle?: () => void;
 }
 
-export const Accordion: React.FC<AccordionProps> = ({ title, children, defaultOpen = true }) => {
-  const [isOpen, setIsOpen] = useState(defaultOpen);
+export const Accordion: React.FC<AccordionProps> = ({ title, children, defaultOpen = true, isOpen: controlledIsOpen, onToggle }) => {
+  const [internalIsOpen, setInternalIsOpen] = useState(defaultOpen);
   const [isOverflowVisible, setIsOverflowVisible] = useState(defaultOpen);
   const contentId = useId();
+
+  const isControlled = controlledIsOpen !== undefined && onToggle !== undefined;
+  const isOpen = isControlled ? controlledIsOpen : internalIsOpen;
+
+  const handleToggle = () => {
+    if (isControlled) {
+      onToggle();
+    } else {
+      setInternalIsOpen(!internalIsOpen);
+    }
+  };
 
   useEffect(() => {
     if (isOpen) {
@@ -26,7 +39,7 @@ export const Accordion: React.FC<AccordionProps> = ({ title, children, defaultOp
     <div className="border border-gray-200 rounded-lg mb-4 bg-white shadow-sm">
       <button
         type="button"
-        onClick={() => setIsOpen(!isOpen)}
+        onClick={handleToggle}
         className="w-full flex justify-between items-center p-4 bg-gray-50 hover:bg-gray-100 focus:outline-none focus:ring-2 focus:ring-blue-500 rounded-t-lg"
         aria-expanded={isOpen}
         aria-controls={contentId}

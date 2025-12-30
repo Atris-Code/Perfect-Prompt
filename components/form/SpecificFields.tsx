@@ -1,5 +1,5 @@
-import React, { useState, useMemo, useRef, useCallback } from 'react';
-import { ContentType, type FormData, type StyleDefinition, type AudiovisualScene, type View, type VideoPreset } from '../../types';
+import React, { useState, useMemo, useRef, useCallback, useEffect } from 'react';
+import { ContentType, type FormData, type StyleDefinition, type AudiovisualScene, type View, type VideoPreset, type GenrePack } from '../../types';
 import { Accordion } from './Accordion';
 import { FormInput, FormTextarea, FormSelect, RatingSlider } from './FormControls';
 // FIX: Imported TONES to resolve 'Cannot find name' error.
@@ -9,6 +9,84 @@ import InspirationWall from '../InspirationWall';
 import { useTranslations } from '../../contexts/LanguageContext';
 import { PRESETS } from '../../data/presets';
 import { StyleSearchInput } from './StyleSearchInput';
+import { ALL_DOCUMENTARY_PRESETS, CLASSIFIED_DOCUMENTARY_PRESETS } from '../../data/documentaryPresets';
+import { CLASSIFIED_GENRE_PRESETS } from '../../data/genrePresets';
+import { SceneEditor } from './SceneEditor';
+import { AGENTS_CODEX } from '../../data/agentsCodex';
+import { generateProcessedAudio, cleanAndAdaptScript, extractStrategicMilestones, generateCinematicScriptFromMilestones } from '../../services/geminiService';
+
+// --- Audio Helper Functions ---
+function decode(base64: string) {
+  const binaryString = atob(base64);
+  const len = binaryString.length;
+  const bytes = new Uint8Array(len);
+  for (let i = 0; i < len; i++) {
+    bytes[i] = binaryString.charCodeAt(i);
+  }
+  return bytes;
+}
+
+async function decodeAudioData(
+  data: Uint8Array,
+  ctx: AudioContext,
+  sampleRate: number,
+  numChannels: number,
+): Promise<AudioBuffer> {
+  const dataInt16 = new Int16Array(data.buffer);
+  const frameCount = dataInt16.length / numChannels;
+  const buffer = ctx.createBuffer(numChannels, frameCount, sampleRate);
+
+  for (let channel = 0; channel < numChannels; channel++) {
+    const channelData = buffer.getChannelData(channel);
+    for (let i = 0; i < frameCount; i++) {
+      channelData[i] = dataInt16[i * numChannels + channel] / 32768.0;
+    }
+  }
+  return buffer;
+}
+
+function audioBufferToWav(buffer: AudioBuffer): Blob {
+    const numOfChan = buffer.numberOfChannels;
+    const length = buffer.length * numOfChan * 2 + 44;
+    const arrayBuffer = new ArrayBuffer(length);
+    const view = new DataView(arrayBuffer);
+    let pos = 0;
+
+    const setUint16 = (data: number) => { view.setUint16(pos, data, true); pos += 2; };
+    const setUint32 = (data: number) => { view.setUint32(pos, data, true); pos += 4; };
+
+    setUint32(0x46464952); // "RIFF"
+    setUint32(length - 8);
+    setUint32(0x45564157); // "WAVE"
+    setUint32(0x20746d66); // "fmt "
+    setUint32(16);
+    setUint16(1);
+    setUint16(numOfChan);
+    setUint32(buffer.sampleRate);
+    setUint32(buffer.sampleRate * 2 * numOfChan);
+    setUint16(numOfChan * 2);
+    setUint16(16);
+    setUint32(0x61746164); // "data"
+    setUint32(length - pos - 4);
+
+    const channels = [];
+    for (let i = 0; i < buffer.numberOfChannels; i++) {
+        channels.push(buffer.getChannelData(i));
+    }
+
+    let offset = 0;
+    while (pos < length) {
+        for (let i = 0; i < numOfChan; i++) {
+            let sample = Math.max(-1, Math.min(1, channels[i][offset]));
+            sample = (0.5 + sample < 0 ? sample * 32768 : sample * 32767) | 0;
+            view.setInt16(pos, sample, true);
+            pos += 2;
+        }
+        offset++;
+    }
+    return new Blob([view], { type: 'audio/wav' });
+}
+
 
 const fileToDataUrl = (file: File): Promise<{ data: string; name: string; type: string; }> => {
     return new Promise((resolve, reject) => {
@@ -23,7 +101,7 @@ interface FileUploaderProps {
     label: string;
     accept: string;
     acceptedFormats: string;
-    file: { name: string; data: string } | null | undefined;
+    file: { name: string; data?: string, content?: string } | null | undefined;
     onFileChange: (file: File) => void;
     onFileRemove: () => void;
 }
@@ -134,19 +212,223 @@ export const SpecificFields: React.FC<SpecificFieldsProps> = ({
   onOpenAppendix,
 }) => {
   const { t } = useTranslations();
-  const specificsForText = formData.specifics[ContentType.Texto] || {};
-  const specificsForImage = formData.specifics[ContentType.Imagen] || {};
-  const specificsForVideo = formData.specifics[ContentType.Video] || {};
-  const specificsForAudio = formData.specifics[ContentType.Audio] || {};
-  const specificsForCodigo = formData.specifics[ContentType.Codigo] || {};
   
+  // FIX: All hooks moved to the top-level to fix React Error #310.
+  // This ensures hooks are not called conditionally.
+  const [selectedSceneType, setSelectedSceneType] = useState('');
+  const [selectedGenrePack, setSelectedGenrePack] = useState('');
+  const [audioMode, setAudioMode] = useState<'tts' | 'processing'>('tts');
+  const [isGeneratingAudio, setIsGeneratingAudio] = useState(false);
+  const [audioError, setAudioError] = useState('');
+  const audioContextRef = useRef<AudioContext | null>(null);
+  const [isCleaningScript, setIsCleaningScript] = useState(false);
+
+  // State for Synergy Workflow
+  const [isExtractingMilestones, setIsExtractingMilestones] = useState(false);
+  const [milestoneError, setMilestoneError] = useState('');
+  const [isGeneratingScript, setIsGeneratingScript] = useState(false);
+  const [scriptError, setScriptError] = useState('');
+
   const financialPresetNames = useMemo(() => [
     '[REPORTE] Viabilidad de Nuevo Activo (Chronos)',
   ], []);
 
   const narrativePresets = useMemo(() => PRESETS.filter(p => !financialPresetNames.includes(p.name)), [financialPresetNames]);
   const financialPresets = useMemo(() => PRESETS.filter(p => financialPresetNames.includes(p.name)), [financialPresetNames]);
+  const VOICE_AGENTS = useMemo(() => AGENTS_CODEX.map(a => a.claveName.split(',')[0]), []);
+  const HOST_VOICES = useMemo(() => ['Narrador Neutral (Masculino)', 'Narradora Neutral (Femenino)'], []);
+  
+  const specificsForText = formData.specifics[ContentType.Texto] || {};
+  const specificsForImage = formData.specifics[ContentType.Imagen] || {};
+  const specificsForVideo = formData.specifics[ContentType.Video] || {};
+  const specificsForAudio = formData.specifics[ContentType.Audio] || {};
+  const specificsForCodigo = formData.specifics[ContentType.Codigo] || {};
 
+  // This useEffect will now be the single source of truth for the "Task-to-Script" workflow.
+  // It triggers when the source document changes or the workflow is switched to 'synergy'.
+  useEffect(() => {
+    const doc = specificsForVideo.synergySourceDocument;
+    const milestones = specificsForVideo.strategicMilestones || [];
+
+    // Condition to run: synergy mode is active, a document with content exists,
+    // and milestones haven't been extracted for it yet.
+    if (specificsForVideo.videoWorkflow === 'synergy' && doc?.content && milestones.length === 0) {
+      
+      const extract = async () => {
+        setIsExtractingMilestones(true);
+        setMilestoneError('');
+        try {
+          const result = await extractStrategicMilestones(doc.content);
+          handleChange({ target: { name: 'strategicMilestones', value: result.milestones } });
+        } catch (err) {
+          setMilestoneError(err instanceof Error ? err.message : 'Error al extraer los hitos del documento.');
+        } finally {
+          setIsExtractingMilestones(false);
+        }
+      };
+
+      extract();
+    }
+  }, [specificsForVideo.synergySourceDocument, specificsForVideo.videoWorkflow, handleChange]);
+  
+  const handleCleanScript = async () => {
+      const { scriptContent, scriptFormat } = specificsForAudio;
+      if (!scriptContent) {
+          setAudioError('No hay guion para limpiar.');
+          return;
+      }
+      setIsCleaningScript(true);
+      setAudioError('');
+      try {
+          const cleanedScript = await cleanAndAdaptScript(scriptContent, scriptFormat || 'monologue');
+          handleChange({ target: { name: 'scriptContent', value: cleanedScript }});
+      } catch (err) {
+          setAudioError(err instanceof Error ? err.message : 'Error al limpiar el guion.');
+      } finally {
+          setIsCleaningScript(false);
+      }
+  };
+
+  const handleGenerateProcessedAudio = async () => {
+      const { scriptContent, voiceIntonation, scriptFormat, voiceAgent, hostVoice, titanVoice } = specificsForAudio;
+      if (!scriptContent) {
+          setAudioError('El guion no puede estar vacío.');
+          return;
+      }
+      setIsGeneratingAudio(true);
+      setAudioError('');
+      handleChange({ target: { name: 'generatedAudioUrl', value: '' } });
+
+      try {
+          const audioConfig = {
+              format: scriptFormat || 'monologue',
+              voiceAgent: voiceAgent,
+              hostVoice: hostVoice,
+              titanVoice: titanVoice
+          };
+          const base64Audio = await generateProcessedAudio(scriptContent, voiceIntonation || 'Narrativo', audioConfig);
+          
+          if (!audioContextRef.current || audioContextRef.current.state === 'closed') {
+              audioContextRef.current = new (window.AudioContext || (window as any).webkitAudioContext)({ sampleRate: 24000 });
+          }
+          const ctx = audioContextRef.current;
+          const audioBuffer = await decodeAudioData(decode(base64Audio), ctx, 24000, 1);
+          
+          const wavBlob = audioBufferToWav(audioBuffer);
+          const url = URL.createObjectURL(wavBlob);
+
+          handleChange({ target: { name: 'generatedAudioUrl', value: url } });
+
+      } catch (err) {
+          setAudioError(err instanceof Error ? err.message : 'Error al generar audio');
+      } finally {
+          setIsGeneratingAudio(false);
+      }
+  };
+  
+  const handleSequenceChange = (newSequence: AudiovisualScene[]) => {
+      handleChange({ target: { name: 'audiovisualSequence', value: newSequence }});
+  };
+  
+  const handleAddScene = () => {
+      if (!selectedSceneType) return;
+      const preset = ALL_DOCUMENTARY_PRESETS.find(p => p.preset_name === selectedSceneType);
+      if (!preset) return;
+
+      const newScene: AudiovisualScene = {
+          id: `scene-${Date.now()}`,
+          sceneTitle: preset.preset_name,
+          narration: preset.description,
+          duration: 10,
+          visualPromptPreset: '',
+          visualPromptFreeText: preset.prompt_block,
+          soundDesign: ''
+      };
+      const currentSequence = specificsForVideo.audiovisualSequence || [];
+      handleSequenceChange([...currentSequence, newScene]);
+  };
+  
+  const handleApplyGenrePack = () => {
+      if (!selectedGenrePack) return;
+      const pack = CLASSIFIED_GENRE_PRESETS.find(p => p.genre === selectedGenrePack);
+      if (!pack) return;
+
+      const newSequence: AudiovisualScene[] = pack.presets.map(preset => ({
+          id: `scene-${preset.preset_name}-${Date.now()}`,
+          sceneTitle: preset.preset_name,
+          narration: preset.description,
+          duration: 15,
+          visualPromptPreset: '',
+          visualPromptFreeText: preset.prompt_block,
+          soundDesign: ''
+      }));
+      handleSequenceChange(newSequence);
+  };
+
+  // This handler is now simplified. It's only responsible for reading the file
+  // and setting the state in a way that triggers the useEffect above correctly.
+  const handleSynergyDocumentUpload = async (file: File) => {
+    // Reset the entire flow when a new document is uploaded.
+    // Clearing milestones here is CRUCIAL for the useEffect to re-trigger.
+    handleChange({ target: { name: 'strategicMilestones', value: [] } });
+    handleChange({ target: { name: 'generatedCinematicScript', value: '' } });
+    setMilestoneError('');
+    setScriptError('');
+    
+    try {
+        let content = '';
+        if (file.type === 'application/pdf') {
+            if (typeof window.pdfjsLib === 'undefined' || !window.pdfjsLib.GlobalWorkerOptions.workerSrc) {
+                throw new Error("PDF.js no se ha cargado correctamente.");
+            }
+            const arrayBuffer = await file.arrayBuffer();
+            const pdf = await window.pdfjsLib.getDocument({ data: arrayBuffer }).promise;
+            for (let i = 1; i <= pdf.numPages; i++) {
+                const page = await pdf.getPage(i);
+                const textContent = await page.getTextContent();
+                content += textContent.items.map((item: any) => item.str).join(' ');
+            }
+        } else if (file.type.startsWith('text/')) {
+            content = await file.text();
+        } else {
+            throw new Error('Formato no soportado. Sube PDF o TXT.');
+        }
+
+        // Set the new document, which will trigger the useEffect to extract milestones.
+        handleChange({ target: { name: 'synergySourceDocument', value: { name: file.name, content } } });
+        
+    } catch (err) {
+        setMilestoneError(err instanceof Error ? err.message : 'Error al procesar documento.');
+        // Ensure document is cleared if processing fails
+        handleChange({ target: { name: 'synergySourceDocument', value: undefined } });
+    }
+  };
+
+  const handleGenerateCinematicScript = async () => {
+    const { strategicMilestones, emotionalTone, targetAudience } = specificsForVideo;
+    if (!strategicMilestones || strategicMilestones.length === 0) {
+        setScriptError('Primero debes extraer los hitos estratégicos.');
+        return;
+    }
+    setIsGeneratingScript(true);
+    setScriptError('');
+    try {
+        const script = await generateCinematicScriptFromMilestones(strategicMilestones, emotionalTone || 'Inspirador y Épico', targetAudience || 'Inversores');
+        handleChange({ target: { name: 'generatedCinematicScript', value: script } });
+    } catch (err) {
+        setScriptError(err instanceof Error ? err.message : 'Error al generar el guion.');
+    } finally {
+        setIsGeneratingScript(false);
+    }
+  };
+
+  const handleMilestoneChange = (id: string, field: 'title' | 'description', value: string) => {
+      const updatedMilestones = specificsForVideo.strategicMilestones?.map(m =>
+          m.id === id ? { ...m, [field]: value } : m
+      );
+      handleChange({ target: { name: 'strategicMilestones', value: updatedMilestones } });
+  };
+  
   switch (contentType) {
     case ContentType.Texto:
       return (
@@ -291,196 +573,231 @@ export const SpecificFields: React.FC<SpecificFieldsProps> = ({
         </div>
       );
     case ContentType.Video:
+        const emotionalTones = ['Inspirador y Épico', 'Técnico y Preciso', 'Urgente y Dramático', 'Esperanzador y Humano'];
+        const synergyTargetAudiences = ['Inversores de Capital de Riesgo', 'Equipos Internos (Alineación)', 'Público General (Concienciación)'];
+
       return (
         <div className="space-y-4">
-          <Accordion title="Muro de Inspiración (Opcional)" defaultOpen>
-            <InspirationWall
-              onAnalyze={onAnalyzeInspirationForVideo}
-              isLoading={videoInspirationLoading}
-              analyzeButtonText="Usar Imágenes para Video"
-            />
-          </Accordion>
-          <Accordion title="Modo de Creación de Video" defaultOpen>
-            <div className="md:col-span-2">
-                <div className="flex flex-col gap-3">
-                    <label className="flex items-center space-x-3 cursor-pointer p-2 rounded-md hover:bg-gray-50">
-                        <input type="radio" name="videoCreationMode" value="text-to-video" checked={specificsForVideo.videoCreationMode === 'text-to-video'} onChange={handleChange} className="form-radio text-blue-600 h-5 w-5"/>
-                        <span>Texto a Video</span>
-                    </label>
-                    <label className="flex items-center space-x-3 cursor-pointer p-2 rounded-md hover:bg-gray-50">
-                        <input type="radio" name="videoCreationMode" value="image-to-video" checked={specificsForVideo.videoCreationMode === 'image-to-video'} onChange={handleChange} className="form-radio text-blue-600 h-5 w-5"/>
-                        <span>Imagen a Video</span>
-                    </label>
-                    <label className="flex items-center space-x-3 cursor-pointer p-2 rounded-md hover:bg-gray-50">
-                        <input type="radio" name="videoCreationMode" value="video-to-video" checked={specificsForVideo.videoCreationMode === 'video-to-video'} onChange={handleChange} className="form-radio text-blue-600 h-5 w-5"/>
-                        <span>Video a Video</span>
-                    </label>
-                </div>
-            </div>
-          </Accordion>
-
-          <Accordion title="Estilo Visual y Formato" defaultOpen>
-            <FormSelect
-              label="Relación de Aspecto"
-              id="aspectRatio"
-              name="aspectRatio"
-              value={specificsForVideo.aspectRatio || '16:9'}
-              onChange={handleChange}
-            >
-              <option value="16:9">16:9 (Horizontal)</option>
-              <option value="9:16">9:16 (Vertical)</option>
-              <option value="1:1">1:1 (Cuadrado)</option>
-            </FormSelect>
-            <div className="md:col-span-2">
-                <label htmlFor="artisticStyle" className="mb-2 font-medium text-gray-700 block">Estilo Artístico</label>
-                <select
-                    id="artisticStyle"
-                    name="artisticStyle"
-                    multiple
-                    value={specificsForVideo.artisticStyle || []}
+            <div className="p-4 bg-gray-100 rounded-lg">
+                <FormSelect
+                    label="Modo de Trabajo"
+                    id="videoWorkflow"
+                    name="videoWorkflow"
+                    value={specificsForVideo.videoWorkflow || 'manual'}
                     onChange={handleChange}
-                    className="w-full h-40 px-4 py-2 border rounded-md shadow-sm focus:ring-blue-500 focus:border-blue-500 transition duration-150 ease-in-out bg-white text-gray-800 border-gray-300"
                 >
-                    {CLASSIFIED_STYLES.map(group => (
-                        <optgroup key={group.id} label={group.category}>
-                            {group.styles.map(style => <option key={style} value={style}>{style}</option>)}
-                        </optgroup>
-                    ))}
-                </select>
-                <p className="mt-2 text-xs text-gray-500">Selecciona uno o más estilos para influir en la estética. Usa Ctrl/Cmd para seleccionar varios.</p>
+                    <option value="manual">Constructor de Escenas Manual</option>
+                    <option value="synergy">Sinergia Estratégica: De Hoja de Ruta a Guion</option>
+                </FormSelect>
             </div>
-          </Accordion>
-          
-          <Accordion title="Dirección de Cámara y Estilo Visual" defaultOpen>
-              <FormInput
-                  label="Movimiento de Cámara"
-                  id="cameraMovement"
-                  name="cameraMovement"
-                  value={specificsForVideo.cameraMovement || ''}
-                  onChange={handleChange}
-                  placeholder="Ej: Travelling lento, cámara en mano, plano orbital..."
-              />
-              <FormInput
-                  label="Estilo Visual General"
-                  id="visualStyle"
-                  name="visualStyle"
-                  value={specificsForVideo.visualStyle || ''}
-                  onChange={handleChange}
-                  placeholder="Ej: Look de cine noir, colores saturados de los 80, estética documental..."
-              />
-              <FormInput
-                  label="Efectos Visuales (VFX)"
-                  id="vfx"
-                  name="vfx"
-                  value={specificsForVideo.vfx || ''}
-                  onChange={handleChange}
-                  placeholder="Ej: Partículas brillantes, estelas de luz, efecto glitch..."
-              />
-              <FormInput
-                  label="Entorno / Atmósfera"
-                  id="environment"
-                  name="environment"
-                  value={specificsForVideo.environment || ''}
-                  onChange={handleChange}
-                  placeholder="Ej: Un bosque neblinoso, una ciudad futurista de neón, un laboratorio estéril..."
-              />
-          </Accordion>
 
-          <Accordion title="Diseño de Sonido y Música" defaultOpen>
-              <FormInput
-                  label="Diseño de Sonido (Ambiente)"
-                  id="soundDesign"
-                  name="soundDesign"
-                  value={specificsForVideo.soundDesign || ''}
-                  onChange={handleChange}
-                  placeholder="Ej: Viento suave, zumbido de maquinaria, silencio tenso..."
-              />
-              <FormSelect
-                  label="Género Musical"
-                  id="musicGenre"
-                  name="musicGenre"
-                  value={specificsForVideo.musicGenre || ''}
-                  onChange={handleChange}
-              >
-                  <option value="">Selecciona un género...</option>
-                  {MUSIC_GENRES.map(group => (
-                      <optgroup key={group.category} label={group.category}>
-                          {group.genres.map(genre => <option key={genre} value={genre}>{genre}</option>)}
-                      </optgroup>
-                  ))}
-              </FormSelect>
-          </Accordion>
+            {specificsForVideo.videoWorkflow === 'synergy' ? (
+                <div className="space-y-6">
+                    <Accordion title="Fase 1: Laboratorio de Narrativa (Definición de Hitos)" defaultOpen>
+                        <FileUploader
+                            label="Importar Análisis Estratégico"
+                            accept=".pdf,.txt"
+                            acceptedFormats="PDF, TXT"
+                            file={specificsForVideo.synergySourceDocument}
+                            onFileChange={handleSynergyDocumentUpload}
+                            onFileRemove={() => {
+                                handleChange({ target: { name: 'synergySourceDocument', value: undefined } });
+                                handleChange({ target: { name: 'strategicMilestones', value: [] } });
+                                handleChange({ target: { name: 'generatedCinematicScript', value: '' } });
+                            }}
+                        />
+                        {isExtractingMilestones && <div className="text-center text-blue-600">Extrayendo hitos con IA (Helena)...</div>}
+                        {milestoneError && <div className="text-center text-red-600">{milestoneError}</div>}
+                        
+                        {(specificsForVideo.strategicMilestones || []).length > 0 && (
+                            <div className="space-y-4 pt-4 border-t">
+                                <h4 className="font-semibold">Hitos Narrativos Extraídos (Editables)</h4>
+                                {specificsForVideo.strategicMilestones!.map(milestone => (
+                                    <div key={milestone.id} className="p-3 border rounded-md bg-gray-50">
+                                        <FormInput label="" name={`milestone-title-${milestone.id}`} value={milestone.title} onChange={(e) => handleMilestoneChange(milestone.id, 'title', e.target.value)} className="font-bold mb-2"/>
+                                        <FormTextarea label="" name={`milestone-desc-${milestone.id}`} value={milestone.description} onChange={(e) => handleMilestoneChange(milestone.id, 'description', e.target.value)} rows={3} />
+                                    </div>
+                                ))}
+                            </div>
+                        )}
+                    </Accordion>
+                    <Accordion title="Fase 2: Traducción Creativa (Dirección Cinematográfica)" defaultOpen>
+                        <FormSelect label="Tono Emocional" name="emotionalTone" value={specificsForVideo.emotionalTone || ''} onChange={handleChange}>
+                             {emotionalTones.map(tone => <option key={tone} value={tone}>{tone}</option>)}
+                        </FormSelect>
+                        <FormSelect label="Audiencia Objetivo" name="targetAudience" value={specificsForVideo.targetAudience || ''} onChange={handleChange}>
+                             {synergyTargetAudiences.map(aud => <option key={aud} value={aud}>{aud}</option>)}
+                        </FormSelect>
+                        <button type="button" onClick={handleGenerateCinematicScript} disabled={isGeneratingScript || !specificsForVideo.strategicMilestones?.length} className="w-full bg-green-600 text-white font-bold py-2 px-4 rounded-lg hover:bg-green-700 disabled:bg-gray-400">
+                           {isGeneratingScript ? 'Generando...' : 'Generar Borrador de Guion (Marco)'}
+                        </button>
+                        {scriptError && <div className="text-center text-red-600 mt-2">{scriptError}</div>}
+                    </Accordion>
+                    <Accordion title="Fase 3: Resultado (Guion Generado)" defaultOpen>
+                        <FormTextarea label="" name="generatedCinematicScript" value={specificsForVideo.generatedCinematicScript || (isGeneratingScript ? 'Generando guion...' : 'El guion cinematográfico aparecerá aquí.')} readOnly rows={15} className="font-mono bg-gray-100"/>
+                    </Accordion>
+                </div>
+            ) : (
+                <>
+                    <Accordion title="Agente Guionista Documental" defaultOpen>
+                        <div className="md:col-span-2 space-y-4">
+                            <div>
+                                <h4 className="font-semibold text-gray-800">Herramientas de Guion Específico</h4>
+                                <p className="text-xs text-gray-500 mb-2">Añade escenas prototipo individuales a tu secuencia.</p>
+                                <div className="flex gap-2">
+                                    <FormSelect
+                                        label=""
+                                        id="sceneType"
+                                        name="sceneType"
+                                        value={selectedSceneType}
+                                        onChange={(e) => setSelectedSceneType(e.target.value)}
+                                        className="flex-grow"
+                                    >
+                                        <option value="">Selecciona un tipo de escena...</option>
+                                        {CLASSIFIED_DOCUMENTARY_PRESETS.map(group => (
+                                            <optgroup key={group.category} label={group.category}>
+                                                {group.presets.map(preset => <option key={preset.preset_name} value={preset.preset_name}>{preset.preset_name}</option>)}
+                                            </optgroup>
+                                        ))}
+                                    </FormSelect>
+                                    <button type="button" onClick={handleAddScene} className="px-4 py-2 bg-blue-600 text-white rounded-md font-semibold text-sm">Añadir Escena</button>
+                                </div>
+                            </div>
+                             <div>
+                                <h4 className="font-semibold text-gray-800">Paquetes de Género Documental</h4>
+                                <p className="text-xs text-gray-500 mb-2">Carga una secuencia completa de escenas basada en un género documental.</p>
+                                <div className="flex gap-2">
+                                    <FormSelect
+                                        label=""
+                                        id="genrePack"
+                                        name="genrePack"
+                                        value={selectedGenrePack}
+                                        onChange={(e) => setSelectedGenrePack(e.target.value)}
+                                        className="flex-grow"
+                                    >
+                                        <option value="">Selecciona un paquete de género...</option>
+                                        {CLASSIFIED_GENRE_PRESETS.map(pack => <option key={pack.genre} value={pack.genre}>{pack.genre}</option>)}
+                                    </FormSelect>
+                                    <button type="button" onClick={handleApplyGenrePack} className="px-4 py-2 bg-purple-600 text-white rounded-md font-semibold text-sm">Aplicar Paquete</button>
+                                </div>
+                            </div>
+                        </div>
+                    </Accordion>
 
-          {specificsForVideo.videoCreationMode === 'text-to-video' && (
-              <Accordion title="Guion de Video" defaultOpen>
-                  <div className="md:col-span-2">
-                    <FormTextarea label="Descripción del Video (Prompt)" id="scriptSummary" name="scriptSummary" value={specificsForVideo.scriptSummary || ''} onChange={handleChange} rows={5} placeholder="Describe la historia, el tema o el concepto de tu video. Ej: 'Un documental sobre el impacto de la pirólisis en la economía circular de Bogotá...'" />
-                  </div>
-              </Accordion>
-          )}
-
-          {specificsForVideo.videoCreationMode === 'image-to-video' && (
-              <Accordion title="Contenido de Origen" defaultOpen>
-                  <FileUploader
-                      label="Subir Imagen de Origen"
-                      accept="image/png, image/jpeg, image/gif"
-                      acceptedFormats="PNG, JPG, GIF"
-                      file={specificsForVideo.sourceImageForVideo}
-                      onFileChange={async (file) => {
-                          const fileData = await fileToDataUrl(file);
-                          handleChange({ target: { name: 'sourceImageForVideo', value: fileData }});
-                      }}
-                      onFileRemove={() => handleChange({ target: { name: 'sourceImageForVideo', value: undefined }})}
-                  />
-                  <div className="md:col-span-2">
-                    <FormTextarea label="Prompt de Animación/Edición" id="mediaToVideoPrompt" name="mediaToVideoPrompt" value={specificsForVideo.mediaToVideoPrompt || ''} onChange={handleChange} rows={3} placeholder="Describe cómo animar o transformar la imagen. Ej: 'Hacer un zoom lento hacia el centro de la imagen, las nubes se mueven rápidamente.'" />
-                  </div>
-              </Accordion>
-          )}
-
-          {specificsForVideo.videoCreationMode === 'video-to-video' && (
-              <Accordion title="Contenido de Origen" defaultOpen>
-                   <FileUploader
-                      label="Subir Video de Origen"
-                      accept="video/mp4, video/webm, video/mov"
-                      acceptedFormats="MP4, WebM, MOV"
-                      file={specificsForVideo.sourceVideo}
-                      onFileChange={async (file) => {
-                          const fileData = await fileToDataUrl(file);
-                          handleChange({ target: { name: 'sourceVideo', value: fileData }});
-                      }}
-                      onFileRemove={() => handleChange({ target: { name: 'sourceVideo', value: undefined }})}
-                  />
-                   <div className="md:col-span-2">
-                    <FormTextarea label="Prompt de Edición/Transformación" id="mediaToVideoPrompt" name="mediaToVideoPrompt" value={specificsForVideo.mediaToVideoPrompt || ''} onChange={handleChange} rows={3} placeholder="Describe cómo editar o transformar el video. Ej: 'Cambiar el estilo a blanco y negro, añadir un efecto de película antigua.'" />
-                  </div>
-              </Accordion>
-          )}
+                    <SceneEditor
+                        scenes={specificsForVideo.audiovisualSequence || []}
+                        onSceneChange={(updatedScene) => {
+                            const updatedSequence = (specificsForVideo.audiovisualSequence || []).map(s => s.id === updatedScene.id ? updatedScene : s);
+                            handleSequenceChange(updatedSequence);
+                        }}
+                        onSequenceChange={handleSequenceChange}
+                    />
+                    <Accordion title="Estilo Visual y Formato" defaultOpen>
+                        <FormSelect label="Relación de Aspecto" id="aspectRatio" name="aspectRatio" value={specificsForVideo.aspectRatio || '16:9'} onChange={handleChange}>
+                            <option value="16:9">16:9 (Horizontal)</option>
+                            <option value="9:16">9:16 (Vertical)</option>
+                            <option value="1:1">1:1 (Cuadrado)</option>
+                        </FormSelect>
+                        <div className="md:col-span-2">
+                            <label htmlFor="artisticStyle" className="mb-2 font-medium text-gray-700 block">Estilo Artístico</label>
+                            <select id="artisticStyle" name="artisticStyle" multiple value={specificsForVideo.artisticStyle || []} onChange={handleChange} className="w-full h-40 px-4 py-2 border rounded-md shadow-sm focus:ring-blue-500 focus:border-blue-500 transition duration-150 ease-in-out bg-white text-gray-800 border-gray-300">
+                                {CLASSIFIED_STYLES.map(group => (<optgroup key={group.id} label={group.category}>{group.styles.map(style => <option key={style} value={style}>{style}</option>)}</optgroup>))}
+                            </select>
+                            <p className="mt-2 text-xs text-gray-500">Selecciona uno o más estilos para influir en la estética. Usa Ctrl/Cmd para seleccionar varios.</p>
+                        </div>
+                    </Accordion>
+                </>
+            )}
         </div>
       );
     case ContentType.Audio:
+      const ENTONATION_PRESETS = [
+          'Didáctico (Estilo Euclides)', 'Narrativo (Estilo Marco)', 'Experto (Estilo Kandel)',
+          'Susurro (Confidencial)', 'Proyección (Conferencia)',
+      ];
+      const AMBIENCE_PRESETS = [
+          'Estudio Limpio (Inmutable)', 'Sótano (Entrevista)', 'Entorno Industrial (Vulcano)',
+          'Concierto (Susurro)', 'Laboratorio (Pirolis)', 'Biblioteca (Euclides)',
+      ];
+
       return (
         <div className="space-y-4">
-            <Accordion title="Contenido y Voz" defaultOpen>
-                <FormTextarea label="Contenido del Guion" id="scriptContent" name="scriptContent" value={specificsForAudio.scriptContent || ''} onChange={handleChange} rows={5} placeholder="Escribe o pega aquí el texto a ser narrado." />
-                <FormSelect label="Tono de Voz" id="voiceTone" name="voiceTone" value={specificsForAudio.voiceTone || ''} onChange={handleChange}>
-                    <option value="">Selecciona un tono...</option>
-                    {TONES.map(t => <option key={t} value={t}>{t}</option>)}
+          <Accordion title="Fase 1: Interfaz de Usuario 'Estudio de Audio Pro'" defaultOpen>
+            <div className="md:col-span-2">
+              <div className="flex rounded-md shadow-sm">
+                <button type="button" onClick={() => setAudioMode('tts')} className={`px-4 py-2 text-sm font-medium rounded-l-md border transition-colors w-1/2 ${audioMode === 'tts' ? 'bg-blue-600 text-white border-blue-700' : 'bg-white text-gray-700 border-gray-300 hover:bg-gray-50'}`}>
+                  Modo 1: Texto a Voz (TTS)
+                </button>
+                <button type="button" onClick={() => setAudioMode('processing')} className={`-ml-px px-4 py-2 text-sm font-medium rounded-r-md border transition-colors w-1/2 ${audioMode === 'processing' ? 'bg-blue-600 text-white border-blue-700' : 'bg-white text-gray-700 border-gray-300 hover:bg-gray-50'}`}>
+                  Modo 2: Mejora de Audio
+                </button>
+              </div>
+            </div>
+          </Accordion>
+
+          <Accordion title="Fase 2: Sourcing y Limpieza de Guion (IA)" defaultOpen>
+              <div className="md:col-span-2 space-y-4 pt-2">
+                <FormTextarea label="Entrada: Guion de Texto" id="scriptContent" name="scriptContent" value={specificsForAudio.scriptContent || ''} onChange={handleChange} rows={5} placeholder="Escribe o pega aquí el guion 'sucio' o la transcripción..." />
+                <button type="button" className="w-full text-left p-3 bg-gray-100 rounded-md hover:bg-gray-200 text-sm font-semibold text-gray-700">Sinergia (Autorrellenado): Importar Guion desde...</button>
+                <button type="button" onClick={handleCleanScript} disabled={isCleaningScript} className="w-full bg-yellow-500 text-black font-bold py-2 px-4 rounded-lg hover:bg-yellow-600 disabled:bg-gray-400 flex items-center justify-center">
+                  {isCleaningScript ? 'Limpiando...' : 'Limpiar y Adaptar Guion con IA (Marco)'}
+                </button>
+              </div>
+          </Accordion>
+
+          {audioMode === 'tts' && (
+            <Accordion title="Fase 3 & 4: Dirección de Voz y Postproducción (IA)" defaultOpen>
+              <FormSelect label="Formato de Guion" id="scriptFormat" name="scriptFormat" value={specificsForAudio.scriptFormat || 'monologue'} onChange={handleChange}>
+                <option value="monologue">Monólogo (Una Sola Voz)</option>
+                <option value="dialogue">Diálogo (Múltiples Voces)</option>
+              </FormSelect>
+              
+              {specificsForAudio.scriptFormat === 'dialogue' ? (
+                <>
+                  <FormSelect label="Voz del Anfitrión" id="hostVoice" name="hostVoice" value={specificsForAudio.hostVoice || ''} onChange={handleChange}>
+                    <option value="">Selecciona una voz...</option>
+                    {HOST_VOICES.map(voice => <option key={voice} value={voice}>{voice}</option>)}
+                  </FormSelect>
+                  <FormSelect label="Voz del Titán" id="titanVoice" name="titanVoice" value={specificsForAudio.titanVoice || ''} onChange={handleChange}>
+                     <option value="">Selecciona un Titán...</option>
+                    {VOICE_AGENTS.map(agent => <option key={agent} value={agent}>{agent}</option>)}
+                  </FormSelect>
+                </>
+              ) : (
+                <FormSelect label="Selector de Agente (Voz)" id="voiceAgent" name="voiceAgent" value={specificsForAudio.voiceAgent || ''} onChange={handleChange}>
+                  <option value="">Selecciona un Titán...</option>
+                  {VOICE_AGENTS.map(agent => <option key={agent} value={agent}>{agent}</option>)}
                 </FormSelect>
-                <RatingSlider label="Velocidad de Lectura" id="readingSpeed" name="readingSpeed" value={specificsForAudio.readingSpeed || 50} onChange={handleChange} min={0} max={100} step={1} />
+              )}
+
+              <FormSelect label="Preset de Entonación (Dinámico)" id="voiceIntonation" name="voiceIntonation" value={specificsForAudio.voiceIntonation || ''} onChange={handleChange}>
+                <option value="">Selecciona una entonación...</option>
+                {ENTONATION_PRESETS.map(preset => <option key={preset} value={preset}>{preset}</option>)}
+              </FormSelect>
+              
+              <FormSelect label="Paisaje Sonoro (Ambiente)" id="ambiencePreset" name="ambiencePreset" value={specificsForAudio.ambiencePreset || ''} onChange={handleChange}>
+                <option value="">Selecciona un ambiente...</option>
+                {AMBIENCE_PRESETS.map(preset => <option key={preset} value={preset}>{preset}</option>)}
+              </FormSelect>
+
+              <div className="md:col-span-2">
+                <h4 className="font-semibold text-gray-800 mb-2">Agente de Postproducción (Habilidad IA)</h4>
+                 <button type="button" onClick={handleGenerateProcessedAudio} disabled={isGeneratingAudio} className="w-full bg-green-600 text-white font-bold py-3 px-4 rounded-lg hover:bg-green-700 disabled:bg-gray-400 flex items-center justify-center">
+                  {isGeneratingAudio ? 'Generando...' : 'Generar Audio Procesado'}
+                </button>
+                {audioError && <p className="text-red-500 text-sm mt-2">{audioError}</p>}
+                {specificsForAudio.generatedAudioUrl && (
+                    <div className="mt-4">
+                        <h5 className="font-semibold text-gray-800 mb-2">Audio Generado:</h5>
+                        <audio controls src={specificsForAudio.generatedAudioUrl} className="w-full" />
+                        <a href={specificsForAudio.generatedAudioUrl} download={`audio_procesado_${Date.now()}.wav`} className="inline-block mt-2 text-sm text-blue-600 hover:underline">
+                            Descargar Audio
+                        </a>
+                    </div>
+                )}
+              </div>
             </Accordion>
-            <Accordion title="Diseño de Sonido" defaultOpen>
-                <FormInput label="Ambiente Continuo" id="continuousAmbiance" name="continuousAmbiance" value={specificsForAudio.continuousAmbiance || ''} onChange={handleChange} placeholder="Ej: Viento suave, lluvia constante, zumbido de una ciudad" />
-                <FormInput label="Efectos Aislados (SFX)" id="isolatedEffects" name="isolatedEffects" value={specificsForAudio.isolatedEffects || ''} onChange={handleChange} placeholder="Ej: Pasos, una puerta que se cierra, un trueno lejano" />
-                <FormSelect label="Género Musical de Fondo" id="musicGenre" name="musicGenre" value={specificsForAudio.musicGenre || ''} onChange={handleChange}>
-                    <option value="">Sin música</option>
-                    {MUSIC_GENRES.map(group => (
-                        <optgroup key={group.category} label={group.category}>
-                            {group.genres.map(genre => <option key={genre} value={genre}>{genre}</option>)}
-                        </optgroup>
-                    ))}
-                </FormSelect>
-            </Accordion>
+          )}
         </div>
       );
     case ContentType.Codigo:
@@ -509,7 +826,7 @@ export const SpecificFields: React.FC<SpecificFieldsProps> = ({
                     </>
                 )}
                  {specificsForCodigo.scriptType === 'documentador' && (
-                    <FormTextarea label="Código a Documentar" id="codeToDocument" name="codeToDocument" value={specificsForCodigo.codeToDocument || ''} onChange={handleChange} rows={8} placeholder="Pega aquí el fragmento de código que necesita documentación." />
+                    <FormTextarea label="Código a Documentar" id="codeToDocument" name="codeToDocument" value={specificsForCodigo.codeToDocument || ''} onChange={handleChange} rows={8} placeholder="Pega aquí el fragmento de código que necesita documentation." />
                 )}
             </Accordion>
         </div>

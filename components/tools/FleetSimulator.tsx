@@ -44,9 +44,10 @@ interface FleetSimulatorProps {
     onCreateReport: (result: ParallelSimulationResult) => void;
     onOpenUtilityWidget: (duty: number, dutyType: UtilityDutyType, unit: string) => void;
     onSimulationComplete: (results: FleetSimulationResult) => void;
+    onNavigateToArchitecturalSynth: (preset: any) => void;
 }
 
-const FleetSimulator: React.FC<FleetSimulatorProps> = ({ onSaveTask, setView, onCreateReport, onOpenUtilityWidget, onSimulationComplete }) => {
+const FleetSimulator: React.FC<FleetSimulatorProps> = ({ onSaveTask, setView, onCreateReport, onOpenUtilityWidget, onSimulationComplete, onNavigateToArchitecturalSynth }) => {
     const { t } = useTranslations();
     const { costs } = useUtilityCosts();
 
@@ -122,6 +123,16 @@ const FleetSimulator: React.FC<FleetSimulatorProps> = ({ onSaveTask, setView, on
             modules: modules.length,
         };
         onCreateReport(simulationDataForReport);
+    };
+    
+    const handleVisualize = () => {
+        if (!results || !moduleDetails) return;
+
+        onNavigateToArchitecturalSynth({
+            preset: 'Planta Industrial Modular',
+            numModules: modules.length,
+            status: results.generalStatus,
+        });
     };
 
     const financialAnalysis = React.useMemo(() => {
@@ -225,12 +236,18 @@ const FleetSimulator: React.FC<FleetSimulatorProps> = ({ onSaveTask, setView, on
                                     ))}
                                 </div>
                             </div>
-                            <div className="pt-4 border-t border-slate-700">
+                            <div className="pt-4 border-t border-slate-700 flex flex-col sm:flex-row gap-4">
                                 <button
                                     onClick={handleCreateReport}
-                                    className="w-full bg-green-600 text-white font-bold py-3 px-4 rounded-lg hover:bg-green-700 transition-colors"
+                                    className="flex-1 bg-green-600 text-white font-bold py-3 px-4 rounded-lg hover:bg-green-700 transition-colors"
                                 >
                                     {t('fleetSimulator.createReport')}
+                                </button>
+                                <button
+                                    onClick={handleVisualize}
+                                    className="flex-1 bg-indigo-600 text-white font-bold py-3 px-4 rounded-lg hover:bg-indigo-700 transition-colors"
+                                >
+                                    Visualizar Configuración de Flota
                                 </button>
                             </div>
                         </div>

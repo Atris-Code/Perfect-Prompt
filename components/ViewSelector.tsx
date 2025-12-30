@@ -33,14 +33,14 @@ interface ViewSelectorProps {
   setView: (view: View) => void;
 }
 
+// FIX: Updated the 'key' values to match the valid SystemCategory types.
 const CATEGORY_ORDER: { key: SystemCategory, nameKey: string }[] = [
-  { key: 'Creación', nameKey: 'category.creación' }, 
-  { key: 'Inspiración', nameKey: 'category.inspiración' }, 
-  { key: 'Simulación Industrial', nameKey: 'category.simulación industrial' }, 
-  { key: 'Análisis Estratégico', nameKey: 'category.análisis estratégico' },
-  { key: 'Finanzas Descentralizadas', nameKey: 'category.finanzas descentralizadas' },
-  { key: 'Análisis y Datos', nameKey: 'category.análisis y datos' }, 
-  { key: 'Sistema', nameKey: 'category.sistema' }
+    { key: 'Núcleo Creativo', nameKey: 'category.núcleo creativo' },
+    { key: 'Estudios y Talleres', nameKey: 'category.estudios y talleres' },
+    { key: 'Simulación Industrial', nameKey: 'category.simulación industrial' },
+    { key: 'Análisis y Datos', nameKey: 'category.análisis y datos' },
+    { key: 'Finanzas y Estrategia', nameKey: 'category.finanzas y estrategia' },
+    { key: 'Colaboración y Sistema', nameKey: 'category.colaboración y sistema' }
 ];
 
 export const ViewSelector: React.FC<ViewSelectorProps> = ({ currentView, setView }) => {

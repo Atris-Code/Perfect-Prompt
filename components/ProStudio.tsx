@@ -64,7 +64,7 @@ export const ProStudio: React.FC<ProStudioProps> = ({
             // Auto-relleno de campos del formulario
             if (data.ExposureTime) {
                 const exposureTime = data.ExposureTime;
-                const shutterSpeedString = exposureTime < 1 ? '1-' + Math.round(1 / exposureTime) + 's' : exposureTime + 's';
+                const shutterSpeedString = exposureTime < 1 ? '1/' + Math.round(1 / exposureTime) + 's' : exposureTime + 's';
                 handleChange({ target: { name: 'pro_shutter_speed', value: shutterSpeedString } } as any);
             }
             if (data.ISO) {
@@ -141,7 +141,6 @@ export const ProStudio: React.FC<ProStudioProps> = ({
         }
     
         try {
-            // FIX: Use window.html2canvas as it's defined on the global window object.
             const canvas = await window.html2canvas(pdfContentElement, {
                 scale: 2,
                 useCORS: true,
@@ -304,7 +303,7 @@ export const ProStudio: React.FC<ProStudioProps> = ({
                                 label="Velocidad de Obturación (Efecto)" 
                                 id="pro_shutter_speed" 
                                 name="pro_shutter_speed" 
-                                placeholder="Ej: 1-1000s (congelar movimiento), 1s (desenfocar)"
+                                placeholder="Ej: 1/1000s (congelar movimiento), 1s (desenfocar)"
                                 value={formData.pro_shutter_speed}
                                 onChange={handleChange} 
                             />

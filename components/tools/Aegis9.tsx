@@ -1,10 +1,11 @@
 import React, { useState } from 'react';
-import type { AegisState, AegisEvent } from '../../types';
+import type { AegisState, AegisEvent, CharacterProfile } from '../../types';
 import { useTranslations } from '../../contexts/LanguageContext';
 
 interface Aegis9Props {
     aegisState: AegisState;
     setAegisState: React.Dispatch<React.SetStateAction<AegisState>>;
+    titans: CharacterProfile[];
 }
 
 const ncsLevelInfo: Record<AegisState['ncsLevel'], { label: string; shortLabel: string; color: string; ringColor: string; description: string }> = {
@@ -30,7 +31,7 @@ const SectorButton: React.FC<{ sector: string, current: AegisState['activeSector
     </button>
 );
 
-export const Aegis9: React.FC<Aegis9Props> = ({ aegisState, setAegisState }) => {
+export const Aegis9: React.FC<Aegis9Props> = ({ aegisState, setAegisState, titans }) => {
     const { t } = useTranslations();
     const [command, setCommand] = useState('');
     const info = ncsLevelInfo[aegisState.ncsLevel];
@@ -57,6 +58,30 @@ export const Aegis9: React.FC<Aegis9Props> = ({ aegisState, setAegisState }) => 
         });
 
         setCommand('');
+    };
+    
+    const handleGenerateSystemReport = () => {
+        const totalTitans = titans.length;
+        const totalAssistants = titans.reduce((sum, titan) => sum + (titan.assistants?.length || 0), 0);
+        const activeAssistants = titans.reduce((sum, titan) => sum + (titan.assistants?.filter(a => a.status === 'ACTIVE').length || 0), 0);
+        const totalSkills = titans.reduce((sum, titan) => sum + (titan.skillModules?.length || 0), 0);
+        const activeSkills = titans.reduce((sum, titan) => sum + (titan.skillModules?.filter(s => s.status === 'ACTIVE').length || 0), 0);
+
+        const reportMessage = `Auditoría de Agentes finalizada. Estado: ${totalTitans} Titanes, ${activeAssistants}/${totalAssistants} Asistentes activos, ${activeSkills}/${totalSkills} Habilidades activas.`;
+
+        const newEvent: AegisEvent = {
+            id: `evt-report-${Date.now()}`,
+            timestamp: Date.now(),
+            sector: 'Auditoría Interna (Linceo)',
+            type: 'Seguridad',
+            level: 'Info',
+            message: reportMessage,
+        };
+
+        setAegisState(prevState => ({
+            ...prevState,
+            events: [newEvent, ...prevState.events].slice(0, 50).sort((a, b) => b.timestamp - a.timestamp),
+        }));
     };
 
     return (
@@ -137,13 +162,19 @@ export const Aegis9: React.FC<Aegis9Props> = ({ aegisState, setAegisState }) => 
                      <textarea
                         value={command}
                         onChange={(e) => setCommand(e.target.value)}
-                        rows={5}
+                        rows={3}
                         className="w-full p-3 bg-slate-900 border border-slate-600 rounded-md text-slate-200 text-sm font-mono focus:ring-2 focus:ring-blue-500"
                         placeholder={t('aegis.commandPlaceholder')}
                      />
                      <button onClick={handleTransmitDirective} className="w-full mt-3 bg-cyan-600 hover:bg-cyan-700 text-white font-bold py-3 rounded-lg">
                         {t('aegis.transmitDirective')}
                      </button>
+                      <div className="mt-3">
+                         <h3 className="text-lg font-bold mb-2">Auditoría de Sistema (Linceo)</h3>
+                         <button onClick={handleGenerateSystemReport} className="w-full bg-indigo-600 hover:bg-indigo-700 text-white font-bold py-3 rounded-lg">
+                             Ejecutar Auditoría de Agentes Activos
+                         </button>
+                     </div>
                 </div>
 
                 {/* --- SECCIÓN INFERIOR --- */}

@@ -1,3 +1,4 @@
+
 import React, { useState, useMemo, useEffect } from 'react';
 // FIX: Removed AIStudio from type imports as it is a global type and does not need to be explicitly imported.
 import type { ArgusModel, PhoenixState, WasteComposition, Task, UtilityDutyType } from '../../types';
@@ -6,6 +7,7 @@ import { useUtilityCosts } from '../../contexts/UtilityCostContext';
 import { PRESETS } from '../../data/presets';
 import { useTranslations } from '../../contexts/LanguageContext';
 import { generateCinematicImage, generateCinematicVideo } from '../../services/geminiService';
+import { Accordion } from '../form/Accordion';
 
 // --- Reusable UI Components (for consistency) ---
 const Panel: React.FC<React.PropsWithChildren<{ title: string; className?: string }>> = ({ title, children, className }) => (
@@ -83,10 +85,214 @@ const PHOENIX_ELECTRICAL_DEMAND_KW = 385;
 const PHOENIX_PNEUMATIC_DEMAND_M3_H = 150;
 const BASE_THERMAL_DEMAND_MW = 1.2;
 
+// --- Phoenix Lab Components ---
+
+const LeakCheckSimulator: React.FC = () => {
+    const [pressure, setPressure] = useState(0);
+    const [isPressurizing, setIsPressurizing] = useState(false);
+    const [testStatus, setTestStatus] = useState<'idle' | 'testing' | 'passed' | 'failed'>('idle');
+    const [timeLeft, setTimeLeft] = useState(10);
+    const [pressureDrop, setPressureDrop] = useState(0);
+
+    const startTest = () => {
+        setIsPressurizing(true);
+        setTestStatus('idle');
+        setPressure(0);
+        setTimeout(() => {
+            setIsPressurizing(false);
+            setPressure(2.0); // Target 2 bar
+            setTestStatus('testing');
+            setTimeLeft(10);
+            // Simular caída aleatoria
+            setPressureDrop(Math.random() * 0.15); 
+        }, 2000);
+    };
+
+    useEffect(() => {
+        if (testStatus === 'testing' && timeLeft > 0) {
+            const timer = setTimeout(() => setTimeLeft(prev => prev - 1), 1000);
+            return () => clearTimeout(timer);
+        } else if (testStatus === 'testing' && timeLeft === 0) {
+            if (pressureDrop < 0.1) {
+                setTestStatus('passed');
+            } else {
+                setTestStatus('failed');
+            }
+        }
+    }, [testStatus, timeLeft, pressureDrop]);
+
+    return (
+        <div className="bg-slate-700/50 p-4 rounded-lg border border-slate-600">
+            <h5 className="font-bold text-cyan-300 mb-2">Desafío: Leak Check (Estanqueidad)</h5>
+            <div className="grid grid-cols-2 gap-4 items-center">
+                <div className="text-center">
+                    <p className="text-xs text-slate-400">Presión Actual (N₂)</p>
+                    <p className={`text-2xl font-mono font-bold ${(pressure - (testStatus === 'testing' ? pressureDrop * (10-timeLeft)/10 : pressureDrop)) < 1.9 ? 'text-red-400' : 'text-green-400'}`}>
+                        {(pressure - (testStatus === 'testing' ? pressureDrop * (10-timeLeft)/10 : (testStatus === 'passed' || testStatus === 'failed' ? pressureDrop : 0))).toFixed(2)} bar
+                    </p>
+                    <p className="text-xs text-slate-500 mt-1">Objetivo: &lt; 0.1 bar caída en 10s</p>
+                </div>
+                <div>
+                    {testStatus === 'idle' && !isPressurizing && (
+                         <button onClick={startTest} className="w-full bg-blue-600 hover:bg-blue-700 text-white font-bold py-2 px-3 rounded text-sm">
+                            Presurizar Sistema
+                        </button>
+                    )}
+                    {isPressurizing && <p className="text-yellow-400 text-sm animate-pulse">Inyectando N₂...</p>}
+                    {testStatus === 'testing' && (
+                        <div>
+                            <p className="text-sm text-slate-300">Testeando... {timeLeft}s</p>
+                            <div className="w-full bg-slate-600 h-2 rounded-full mt-1">
+                                <div className="bg-blue-500 h-2 rounded-full transition-all duration-1000" style={{ width: `${(timeLeft/10)*100}%`}}></div>
+                            </div>
+                        </div>
+                    )}
+                    {testStatus === 'passed' && (
+                        <div className="bg-green-500/20 text-green-300 p-2 rounded text-sm text-center border border-green-500">
+                            <strong>¡PASADO!</strong><br/>Caída: {pressureDrop.toFixed(3)} bar. Sistema Estanco.
+                        </div>
+                    )}
+                    {testStatus === 'failed' && (
+                        <div className="bg-red-500/20 text-red-300 p-2 rounded text-sm text-center border border-red-500">
+                            <strong>FALLO</strong><br/>Fuga detectada ({pressureDrop.toFixed(2)} bar). Revisar sellos.
+                        </div>
+                    )}
+                </div>
+            </div>
+        </div>
+    );
+};
+
+const MirrorCheckValidator: React.FC = () => {
+    const [inputs, setInputs] = useState({ liquid: 0, gas: 0, coke: 0 });
+    const [verdict, setVerdict] = useState<string | null>(null);
+
+    const runValidation = () => {
+        const { liquid, gas, coke } = inputs;
+        const total = liquid + gas + coke;
+        const TARGET_LIQ = 80.25;
+        const TOLERANCIA = 5.0;
+
+        if (total < 95.0) {
+            setVerdict("ALERTA: Fuga de masa o error de medición (Balance < 95%)");
+            return;
+        }
+        if (coke > 0.1) {
+            setVerdict("CRÍTICO: Desactivación acelerada. Revisar temperatura o catalizador. (Coque > 0.1%)");
+            return;
+        }
+        if (Math.abs(liquid - TARGET_LIQ) > TOLERANCIA) {
+            setVerdict("DESVIACIÓN: Rendimiento líquido fuera de rango. Posible craqueo secundario.");
+            return;
+        }
+        setVerdict("ÉXITO: Validación Empírica Alineada con Simulación (Mirror-Check Passed).");
+    };
+
+    const getVerdictColor = (v: string) => {
+        if (v.includes("ÉXITO")) return "text-green-400 border-green-500 bg-green-500/10";
+        if (v.includes("ALERTA")) return "text-yellow-400 border-yellow-500 bg-yellow-500/10";
+        return "text-red-400 border-red-500 bg-red-500/10";
+    };
+
+    return (
+        <div className="space-y-4">
+             <div className="grid grid-cols-3 gap-2">
+                <div>
+                    <label className="text-xs text-slate-400">Líquidos (%)</label>
+                    <input type="number" value={inputs.liquid} onChange={e => setInputs({...inputs, liquid: Number(e.target.value)})} className="w-full bg-slate-700 border border-slate-600 rounded p-1 text-sm"/>
+                </div>
+                <div>
+                    <label className="text-xs text-slate-400">Gases (%)</label>
+                    <input type="number" value={inputs.gas} onChange={e => setInputs({...inputs, gas: Number(e.target.value)})} className="w-full bg-slate-700 border border-slate-600 rounded p-1 text-sm"/>
+                </div>
+                 <div>
+                    <label className="text-xs text-slate-400">Sólidos (%)</label>
+                    <input type="number" value={inputs.coke} onChange={e => setInputs({...inputs, coke: Number(e.target.value)})} className="w-full bg-slate-700 border border-slate-600 rounded p-1 text-sm"/>
+                </div>
+            </div>
+            <button onClick={runValidation} className="w-full bg-purple-600 hover:bg-purple-700 text-white font-bold py-2 rounded text-sm">
+                Ejecutar Algoritmo "Mirror-Check"
+            </button>
+            {verdict && (
+                <div className={`p-3 rounded border ${getVerdictColor(verdict)} text-sm font-semibold`}>
+                    {verdict}
+                </div>
+            )}
+            <div className="text-xs text-slate-500 italic">
+                *Target: Líquido 80.25%, Gas 19.74%, Coque 0.01%
+            </div>
+        </div>
+    );
+};
+
+const HSESimulator: React.FC = () => {
+    const [scenario, setScenario] = useState<'none' | 'flash_fire' | 'wax_blockage'>('none');
+    const [feedback, setFeedback] = useState<string | null>(null);
+
+    const handleAction = (action: string) => {
+        if (scenario === 'flash_fire') {
+            if (action === 'nitrogen') {
+                setFeedback("CORRECTO: Dilución con N2 evita la explosión. Situación controlada.");
+            } else if (action === 'water') {
+                setFeedback("FALLO CRÍTICO: ¡Explosión de vapor! El agua se evapora instantáneamente a 600°C.");
+            }
+        } else if (scenario === 'wax_blockage') {
+            if (action === 'heat') {
+                setFeedback("CORRECTO: El traceado eléctrico derrite las ceras y libera la línea.");
+            } else if (action === 'pressure') {
+                setFeedback("FALLO: Aumentar la presión provocó la ruptura del disco de seguridad.");
+            }
+        }
+    };
+
+    return (
+        <div className="bg-slate-800 p-4 rounded-lg border border-red-500/30">
+            <h4 className="font-bold text-red-400 mb-3 flex items-center gap-2">
+                <span className="text-xl">⚠️</span> Simulador de Seguridad (Training Protocol AI)
+            </h4>
+            
+            {scenario === 'none' ? (
+                <div className="space-y-2">
+                    <p className="text-sm text-slate-300">Selecciona un escenario de entrenamiento:</p>
+                    <button onClick={() => { setScenario('flash_fire'); setFeedback(null); }} className="w-full bg-slate-700 hover:bg-slate-600 p-2 rounded text-sm text-left">1. Fuga de Gases Calientes ("Flash Fire")</button>
+                    <button onClick={() => { setScenario('wax_blockage'); setFeedback(null); }} className="w-full bg-slate-700 hover:bg-slate-600 p-2 rounded text-sm text-left">2. Bloqueo por Ceras en Línea</button>
+                </div>
+            ) : (
+                <div className="space-y-4 animate-fade-in">
+                    <div className="bg-red-900/20 p-3 rounded border border-red-500/50">
+                        <p className="font-bold text-red-200">ESCENARIO ACTIVO: {scenario === 'flash_fire' ? 'Flash Fire Detected' : 'Pressure Spike (Wax)'}</p>
+                        <p className="text-sm text-red-300 mt-1">
+                            {scenario === 'flash_fire' 
+                                ? "Detectores indican O2 > 5% y aumento rápido de temperatura externa. ¡Riesgo de explosión!" 
+                                : "Aumento repentino de presión en el reactor. Caída de temperatura en la línea de transferencia."}
+                        </p>
+                    </div>
+
+                    {!feedback ? (
+                        <div className="grid grid-cols-2 gap-2">
+                            <button onClick={() => handleAction(scenario === 'flash_fire' ? 'water' : 'pressure')} className="bg-slate-600 hover:bg-red-600 p-2 rounded text-sm transition-colors">
+                                {scenario === 'flash_fire' ? 'Usar Manguera de Agua' : 'Aumentar Presión N2'}
+                            </button>
+                            <button onClick={() => handleAction(scenario === 'flash_fire' ? 'nitrogen' : 'heat')} className="bg-slate-600 hover:bg-green-600 p-2 rounded text-sm transition-colors">
+                                {scenario === 'flash_fire' ? 'Inundar con N2 (Dilución)' : 'Activar Traceado Eléctrico'}
+                            </button>
+                        </div>
+                    ) : (
+                        <div className={`p-3 rounded text-sm font-bold ${feedback.includes('CORRECTO') ? 'bg-green-500/20 text-green-300' : 'bg-red-500/20 text-red-300'}`}>
+                            {feedback}
+                            <button onClick={() => setScenario('none')} className="block mt-2 text-xs underline opacity-80 hover:opacity-100">Reiniciar Simulador</button>
+                        </div>
+                    )}
+                </div>
+            )}
+        </div>
+    );
+};
+
 export const Phoenix: React.FC<PhoenixProps> = ({ phoenixState, setPhoenixState, argusModel, onNavigateToUtilities, onSaveTask }) => {
     const { t } = useTranslations();
     const [inputHumidity, setInputHumidity] = useState(15);
-    const [activeView, setActiveView] = useState<'dashboard' | 'cinematic'>('dashboard');
+    const [activeView, setActiveView] = useState<'dashboard' | 'lab' | 'cinematic'>('dashboard');
 
     // Cinematic View State
     const [sceneConfig, setSceneConfig] = useState({
@@ -115,6 +321,9 @@ export const Phoenix: React.FC<PhoenixProps> = ({ phoenixState, setPhoenixState,
     }, []);
 
     const realTimeCalculations = useMemo(() => {
+        if (!isRunning) {
+            return { dynamicThermalDemandMW: 0, pneumaticPower_kW: 0, electricalCost: 0, thermalCost: 0, pneumaticCost: 0, totalCost: 0, energyIntensity: 0 };
+        }
         const dynamicThermalDemandMW = BASE_THERMAL_DEMAND_MW * (1 + (inputHumidity - 15) * 0.05);
 
         const p1 = 1.01325; const n = 1.4; const R = 8.314; const T1 = 298.15;
@@ -134,7 +343,7 @@ export const Phoenix: React.FC<PhoenixProps> = ({ phoenixState, setPhoenixState,
         const energyIntensity = pelletProductionTonsPerHour > 0 ? totalPowerDemand_kW / pelletProductionTonsPerHour : 0;
         
         return { dynamicThermalDemandMW, pneumaticPower_kW, electricalCost, thermalCost, pneumaticCost, totalCost, energyIntensity };
-    }, [inputHumidity, costs, pelletProduction]);
+    }, [isRunning, inputHumidity, costs, pelletProduction]);
 
     const handleCompositionChange = (key: keyof WasteComposition, value: number) => {
         setPhoenixState(prevState => {
@@ -170,6 +379,82 @@ export const Phoenix: React.FC<PhoenixProps> = ({ phoenixState, setPhoenixState,
             return { ...prevState, wasteComposition: newComposition };
         });
     };
+
+    useEffect(() => {
+        if (!isRunning) {
+            // Reiniciar métricas cuando se detiene
+            setPhoenixState(p => ({
+                ...p,
+                argusKpis: {
+                    tasaClasificacion: 0,
+                    purezaOrganico: 0,
+                    eficienciaDeteccion: 0,
+                },
+                pelletProduction: 0,
+                pelletQuality: {
+                    purity: 0,
+                    moisture: 0,
+                },
+                trituradorasStatus: 'OK',
+                secadorStatus: 'OK',
+            }));
+            return;
+        }
+
+        const simulationInterval = setInterval(() => {
+            setPhoenixState(prevState => {
+                const newState = { ...prevState };
+
+                // Simular fallos aleatorios de máquinas
+                let machineFailure = false;
+                if (Math.random() < 0.05) { // 5% de probabilidad de fallo por tick
+                    newState.trituradorasStatus = Math.random() < 0.5 ? 'ATASCO' : 'SOBRECALENTAMIENTO';
+                    machineFailure = true;
+                } else {
+                    newState.trituradorasStatus = 'OK';
+                }
+                if (Math.random() < 0.03) { // 3% de probabilidad de fallo del secador
+                     newState.secadorStatus = 'SOBRECALENTAMIENTO';
+                     machineFailure = true;
+                } else {
+                     newState.secadorStatus = 'OK';
+                }
+                
+                if (machineFailure) {
+                    // Si una máquina falla, la producción se detiene
+                    newState.pelletProduction = 0;
+                    newState.argusKpis.tasaClasificacion = 0;
+                } else {
+                    // Operación normal
+                    const baseProduction = 2500; // kg/h
+                    const organicPercentage = newState.wasteComposition.biomasaOrganica / 100;
+                    const contaminantPercentage = (newState.wasteComposition.plasticosContaminantes + newState.wasteComposition.metales + newState.wasteComposition.inertes) / 100;
+
+                    // La producción depende de la materia orgánica
+                    newState.pelletProduction = baseProduction * organicPercentage * (1 - Math.random() * 0.1); // fluctuación de producción
+
+                    // KPIs de Argus
+                    const baseRate = 800; // items/min
+                    newState.argusKpis.tasaClasificacion = baseRate * (1 - Math.random() * 0.15); // fluctuación de tasa
+                    newState.argusKpis.eficienciaDeteccion = Math.max(85, argusModel.precision - contaminantPercentage * 10 - Math.random() * 2);
+                    newState.argusKpis.purezaOrganico = Math.max(80, 99 - contaminantPercentage * 5 - Math.random() * 2);
+                }
+
+                // Calidad del pellet
+                newState.pelletQuality.purity = newState.argusKpis.purezaOrganico;
+                newState.pelletQuality.moisture = Math.max(5, inputHumidity / 2 - Math.random() * 2);
+
+                // El nivel del silo aumenta con la producción
+                const productionPerSecond = newState.pelletProduction / 3600;
+                newState.pelletSiloLevel = Math.min(10000, prevState.pelletSiloLevel + productionPerSecond * 2); // El intervalo es de 2s
+
+                return newState;
+            });
+        }, 2000); // Actualizar cada 2 segundos
+
+        return () => clearInterval(simulationInterval);
+
+    }, [isRunning, setPhoenixState, argusModel.precision, inputHumidity]);
     
     // --- Cinematic View Logic ---
     useEffect(() => {
@@ -301,6 +586,7 @@ export const Phoenix: React.FC<PhoenixProps> = ({ phoenixState, setPhoenixState,
                     <h2 className="text-3xl font-bold">Módulo de Simulación "Phoenix"</h2>
                      <div className="flex items-center gap-1 p-1 bg-slate-800 rounded-md border border-slate-700">
                         <button onClick={() => setActiveView('dashboard')} className={`px-3 py-1 text-sm rounded ${activeView === 'dashboard' ? 'bg-blue-600 text-white' : 'text-slate-400 hover:bg-slate-700'}`}>{t('hmi.tabs.controlPanel')}</button>
+                        <button onClick={() => setActiveView('lab')} className={`px-3 py-1 text-sm rounded ${activeView === 'lab' ? 'bg-blue-600 text-white' : 'text-slate-400 hover:bg-slate-700'}`}>Laboratorio de Validación</button>
                         <button onClick={() => setActiveView('cinematic')} className={`px-3 py-1 text-sm rounded ${activeView === 'cinematic' ? 'bg-blue-600 text-white' : 'text-slate-400 hover:bg-slate-700'}`}>{t('hmi.tabs.cinematicView')}</button>
                     </div>
                     <div className="flex items-center">
@@ -399,10 +685,77 @@ export const Phoenix: React.FC<PhoenixProps> = ({ phoenixState, setPhoenixState,
                     </div>
                 </div>
             )}
+            
+            {activeView === 'lab' && (
+                <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 animate-fade-in">
+                    <div className="flex flex-col gap-6">
+                        <Panel title="Control de Reactores (Digital Twin)">
+                            <div className="space-y-4">
+                                <div className="grid grid-cols-2 gap-4 text-center">
+                                    <div className="bg-slate-700 p-2 rounded">
+                                        <p className="text-xs text-slate-400">Temp. Reactor</p>
+                                        <p className="text-2xl font-mono text-white">600 <span className="text-sm">°C</span></p>
+                                    </div>
+                                    <div className="bg-slate-700 p-2 rounded">
+                                        <p className="text-xs text-slate-400">Presión</p>
+                                        <p className="text-2xl font-mono text-white">1.0 <span className="text-sm">atm</span></p>
+                                    </div>
+                                </div>
+                                <div className="p-3 bg-slate-900 rounded border border-slate-600">
+                                    <p className="text-xs text-slate-400 mb-1">Métricas de Rendimiento</p>
+                                    <div className="flex justify-between text-sm"><span>Líquidos:</span> <span className="text-cyan-400 font-bold">80.25%</span></div>
+                                    <div className="flex justify-between text-sm"><span>Gases:</span> <span className="text-yellow-400 font-bold">19.74%</span></div>
+                                    <div className="flex justify-between text-sm"><span>Sólidos:</span> <span className="text-orange-400 font-bold">0.01%</span></div>
+                                </div>
+                            </div>
+                        </Panel>
+
+                        <LeakCheckSimulator />
+                        
+                        <HSESimulator />
+                    </div>
+
+                    <div className="flex flex-col gap-6">
+                         <Panel title="Validadores Sintéticos (Algoritmo Mirror-Check)">
+                             <p className="text-sm text-slate-400 mb-4">Compara datos reales con la 'Verdad Terrestre' de la simulación.</p>
+                             <MirrorCheckValidator />
+                         </Panel>
+
+                         <Panel title="Instrumentación Analítica">
+                            <div className="space-y-3 text-sm">
+                                <div className="p-2 bg-slate-700 rounded flex justify-between items-center">
+                                    <span>GC-MS (Líquidos)</span>
+                                    <span className="text-green-400 text-xs px-2 py-1 bg-green-900/50 rounded">En Línea</span>
+                                </div>
+                                <div className="p-2 bg-slate-700 rounded flex justify-between items-center">
+                                    <span>Micro-GC (Gases)</span>
+                                    <span className="text-green-400 text-xs px-2 py-1 bg-green-900/50 rounded">En Línea</span>
+                                </div>
+                                <div className="p-2 bg-slate-700 rounded flex justify-between items-center">
+                                    <span>TGA (Sólidos)</span>
+                                    <span className="text-yellow-400 text-xs px-2 py-1 bg-yellow-900/50 rounded">Calibrando...</span>
+                                </div>
+                            </div>
+                         </Panel>
+                         
+                         <Panel title="Procedimiento Operativo Estándar (SOP)">
+                             <ul className="list-decimal list-inside text-xs text-slate-300 space-y-1">
+                                 <li>Cargar mezcla en reactor.</li>
+                                 <li>Inertización con N2 (15 min).</li>
+                                 <li>Leak Check (verificar estanqueidad).</li>
+                                 <li>Iniciar calentamiento a 600°C.</li>
+                                 <li>Recolectar y pesar fracciones.</li>
+                                 <li>Ejecutar validación Mirror-Check.</li>
+                             </ul>
+                         </Panel>
+                    </div>
+                </div>
+            )}
+
             {activeView === 'cinematic' && (
-                 <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+                 <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 animate-fade-in">
                         <div className="flex flex-col gap-6">
-                            <Panel title={t('hmi.cinematicView.sceneConfig')}>
+                            <Panel title={t('phoenix.cinematic.title')}>
                                  <div className="grid grid-cols-2 gap-4">
                                     <div>
                                         <label className="text-sm font-semibold text-slate-300">{t('phoenix.cinematic.focus')}</label>

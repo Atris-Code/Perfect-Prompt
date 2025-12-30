@@ -1,6 +1,7 @@
 import React, { useState, useMemo, useEffect, useRef } from 'react';
 import { PYROLYSIS_MATERIALS, SIMULATION_ENGINE } from '../../data/pyrolysisMaterials';
-import type { PyrolysisMaterial, SolidMaterial, LiquidMaterial, GaseousMaterial, KnowledgeBaseData, View } from '../../types';
+import type { PyrolysisMaterial, SolidMaterial, LiquidMaterial, GaseousMaterial, KnowledgeBaseData, View, Task, FormData } from '../../types';
+import { ContentType } from '../../types';
 import ProductYieldChart from './ProductYieldChart';
 import { Accordion } from '../form/Accordion';
 import { generateMaterialVisual, estimateThermalConductivity, generateDensificationVisualPrompt } from '../../services/geminiService';
@@ -12,9 +13,10 @@ interface PyrolysisHubProps {
     onEditImage: (imageData: string) => void;
     initialSearch?: string | null;
     onCreateContentFromMaterial: (objective: string, rawData: string) => void;
-    setView: (view: any) => void;
+    setView: (view: View) => void;
     virtualMaterial: PyrolysisMaterial | null;
     onVirtualMaterialConsumed: () => void;
+    onSaveTask: (task: Task, navigate?: boolean) => void;
 }
 
 const NFU_KNOWLEDGE_DATA: KnowledgeBaseData = {
@@ -274,6 +276,20 @@ const KpiCard: React.FC<{ title: string; value: string; unit: string; justificat
     </div>
 );
 
+const ParameterSlider: React.FC<{ label: string; value: number; min: number; max: number; step: number; unit: string; field: string; onParamChange: (field: string, value: number) => void; }> = ({ label, value, min, max, step, unit, field, onParamChange }) => (
+    <div>
+        <div className="flex justify-between items-center mb-1">
+            <label className="text-sm font-medium text-gray-700">{label}</label>
+            <span className="font-mono text-sm bg-gray-200 px-2 py-0.5 rounded-md">{value.toFixed(2)} {unit}</span>
+        </div>
+        <input
+            type="range"
+            min={min} max={max} step={step} value={value}
+            onChange={(e) => onParamChange(field, parseFloat(e.target.value))}
+            className="w-full h-2 bg-gray-200 rounded-lg appearance-none cursor-pointer accent-blue-600"
+        />
+    </div>
+);
 
 const DensificationPlantSimulator: React.FC<{ selectedMaterial: PyrolysisMaterial | undefined }> = ({ selectedMaterial }) => {
     const [params, setParams] = useState({
@@ -349,35 +365,20 @@ const DensificationPlantSimulator: React.FC<{ selectedMaterial: PyrolysisMateria
         }
     };
 
-    const ParameterSlider: React.FC<{ label: string; value: number; min: number; max: number; step: number; unit: string; field: keyof typeof params; }> = ({ label, value, min, max, step, unit, field }) => (
-        <div>
-            <div className="flex justify-between items-center mb-1">
-                <label className="text-sm font-medium text-gray-700">{label}</label>
-                <span className="font-mono text-sm bg-gray-200 px-2 py-0.5 rounded-md">{value.toFixed(2)} {unit}</span>
-            </div>
-            <input
-                type="range"
-                min={min} max={max} step={step} value={value}
-                onChange={(e) => handleParamChange(field, parseFloat(e.target.value))}
-                className="w-full h-2 bg-gray-200 rounded-lg appearance-none cursor-pointer accent-blue-600"
-            />
-        </div>
-    );
-    
     return (
          <Accordion title="Módulo de Producción de Pellet: 'La Planta de Densificación'" defaultOpen={true}>
             <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                 {/* --- CONFIGURATION PANEL --- */}
                 <div className="space-y-4 p-4 bg-gray-50 rounded-lg border">
                     <h3 className="font-bold text-lg mb-2">Parámetros de Simulación</h3>
-                    <ParameterSlider label="Humedad Inicial Materia Prima" value={params.initialMoisture} min={10} max={80} step={1} unit="%" field="initialMoisture" />
-                    <ParameterSlider label="Humedad Final Pellet (Objetivo)" value={params.targetMoisture} min={5} max={20} step={0.5} unit="%" field="targetMoisture" />
+                    <ParameterSlider label="Humedad Inicial Materia Prima" value={params.initialMoisture} min={10} max={80} step={1} unit="%" field="initialMoisture" onParamChange={handleParamChange}/>
+                    <ParameterSlider label="Humedad Final Pellet (Objetivo)" value={params.targetMoisture} min={5} max={20} step={0.5} unit="%" field="targetMoisture" onParamChange={handleParamChange}/>
                     <hr />
-                    <ParameterSlider label="Costo Biomasa" value={params.biomassCost} min={20} max={200} step={5} unit="US$/ton" field="biomassCost" />
-                    <ParameterSlider label="Costo Logístico" value={params.logisticCost} min={5} max={100} step={5} unit="US$/ton" field="logisticCost" />
-                    <ParameterSlider label="Costo Electricidad" value={params.electricityCost} min={0.05} max={0.5} step={0.01} unit="US$/kWh" field="electricityCost" />
-                    <ParameterSlider label="Costo Calor" value={params.heatCost} min={0.01} max={0.2} step={0.005} unit="US$/kWh" field="heatCost" />
-                    <ParameterSlider label="Costos Fijos y Mano de Obra" value={params.fixedAndLaborCost} min={5} max={50} step={1} unit="US$/ton" field="fixedAndLaborCost" />
+                    <ParameterSlider label="Costo Biomasa" value={params.biomassCost} min={20} max={200} step={5} unit="US$/ton" field="biomassCost" onParamChange={handleParamChange}/>
+                    <ParameterSlider label="Costo Logístico" value={params.logisticCost} min={5} max={100} step={5} unit="US$/ton" field="logisticCost" onParamChange={handleParamChange}/>
+                    <ParameterSlider label="Costo Electricidad" value={params.electricityCost} min={0.05} max={0.5} step={0.01} unit="US$/kWh" field="electricityCost" onParamChange={handleParamChange}/>
+                    <ParameterSlider label="Costo Calor" value={params.heatCost} min={0.01} max={0.2} step={0.005} unit="US$/kWh" field="heatCost" onParamChange={handleParamChange}/>
+                    <ParameterSlider label="Costos Fijos y Mano de Obra" value={params.fixedAndLaborCost} min={5} max={50} step={1} unit="US$/ton" field="fixedAndLaborCost" onParamChange={handleParamChange}/>
                 </div>
                 {/* --- KPI DASHBOARD --- */}
                 <div className="space-y-4">
@@ -419,7 +420,7 @@ const DensificationPlantSimulator: React.FC<{ selectedMaterial: PyrolysisMateria
 };
 
 
-export const PyrolysisHub: React.FC<PyrolysisHubProps> = ({ onSimulateMixture, onEditImage, initialSearch, onCreateContentFromMaterial, setView, virtualMaterial, onVirtualMaterialConsumed }) => {
+export const PyrolysisHub: React.FC<PyrolysisHubProps> = ({ onSimulateMixture, onEditImage, initialSearch, onCreateContentFromMaterial, setView, virtualMaterial, onVirtualMaterialConsumed, onSaveTask }) => {
     const [materials, setMaterials] = useState<PyrolysisMaterial[]>(PYROLYSIS_MATERIALS);
     const [selectedMaterialId, setSelectedMaterialId] = useState<number | null>(1);
     const [searchTerm, setSearchTerm] = useState(initialSearch || '');
@@ -676,36 +677,90 @@ export const PyrolysisHub: React.FC<PyrolysisHubProps> = ({ onSimulateMixture, o
         URL.revokeObjectURL(url);
     };
 
-    const handleUseForPrompt = () => {
+    const handleCreateVisualCampaign = () => {
         if (!selectedMaterial) return;
 
-        const objective = `Crear ficha técnica para el material de pirólisis: ${selectedMaterial.nombre}`;
-        
-        let rawData = `**Ficha Técnica: ${selectedMaterial.nombre}**\n\n`;
-        rawData += `- **Categoría**: ${selectedMaterial.categoria}\n`;
-        rawData += `- **Fase**: ${selectedMaterial.fase}\n`;
+        const materialName = selectedMaterial.nombre;
+        const materialCategory = selectedMaterial.categoria;
 
-        if (selectedMaterial.fase === 'Sólido') {
-            const solid = selectedMaterial as SolidMaterial;
-            rawData += `- **Poder Calorífico Superior**: ${solid.propiedades.poderCalorificoSuperior} MJ/kg\n`;
-            if (solid.propiedades.composicion.celulosa !== undefined) {
-                 rawData += `- **Composición Lignocelulósica**: Celulosa (${solid.propiedades.composicion.celulosa}%), Hemicelulosa (${solid.propiedades.composicion.hemicelulosa}%), Lignina (${solid.propiedades.composicion.lignina}%)\n`;
+        const scene1_narration = `El viaje comienza con nuestra materia prima: ${materialName}. Vemos de cerca su textura, su origen en la categoría de ${materialCategory}, un recurso esperando ser transformado.`;
+        const scene2_narration = `Ingresa al corazón del sistema: el reactor de pirólisis. En un ambiente sin oxígeno, el calor intenso descompone la materia, rompiendo sus cadenas moleculares.`;
+        const scene3_narration = `De la transformación surgen tres productos valiosos: el bio-aceite energético, el biochar rico en carbono, y el syngas, cerrando el ciclo de la economía circular.`;
+        const scene4_narration = `El resultado final: residuos convertidos en valor. Una solución sostenible para un futuro más limpio, demostrando el poder de la innovación.`;
+
+        const newFormData: Partial<FormData> = {
+            objective: `Crear una campaña visual cinematográfica sobre el proceso de pirólisis de ${materialName}.`,
+            tone: 'Cinematográfico / Inspiracional',
+            specifics: {
+                [ContentType.Video]: {
+                    videoCreationMode: 'text-to-video',
+                    aspectRatio: '16:9',
+                    visualStyle: 'Realismo Industrial / Macrofotografía',
+                    soundDesign: 'Ambiente Industrial Eficiente',
+                    musicGenre: 'Score Orquestal Minimalista',
+                    audiovisualSequence: [
+                        {
+                            id: `scene-1-${Date.now()}`,
+                            sceneTitle: 'La Materia Prima',
+                            narration: scene1_narration,
+                            duration: 8,
+                            visualPromptPreset: 'Detalle Simbólico (Symbolic Detail)',
+                            visualPromptFreeText: `Extreme close-up shots of ${materialName}, showcasing its unique texture. Slow-motion, macro photography. Clean, studio lighting.`,
+                            soundDesign: 'Sonidos naturales suaves asociados al material, música minimalista inicia.'
+                        },
+                        {
+                            id: `scene-2-${Date.now()}`,
+                            sceneTitle: 'El Corazón del Reactor',
+                            narration: scene2_narration,
+                            duration: 12,
+                            visualPromptPreset: 'Proceso en Acción (Process Shot)',
+                            visualPromptFreeText: `A 3D infographic cross-section of a pyrolysis reactor. The material is fed inside. The interior glows with intense orange heat. Animated molecules break apart. Style of Kurzgesagt.`,
+                            soundDesign: 'Low-frequency hum of the reactor builds. Rhythmic mechanical clicks. Music becomes more tense and orchestral.'
+                        },
+                        {
+                            id: `scene-3-${Date.now()}`,
+                            sceneTitle: 'Los Productos de Valor',
+                            narration: scene3_narration,
+                            duration: 12,
+                            visualPromptPreset: 'Proceso en Acción (Process Shot)',
+                            visualPromptFreeText: `A sequence of three clean, cinematic shots: 1. Dark, viscous bio-oil flowing into a glass container. 2. Porous, black biochar being discharged. 3. A clean, controlled flame representing the syngas being burned for energy.`,
+                            soundDesign: 'Sounds of dripping liquid, solid material falling, and a clean gas flare. Music resolves into a hopeful, uplifting theme.'
+                        },
+                        {
+                            id: `scene-4-${Date.now()}`,
+                            sceneTitle: 'Cierre: Economía Circular',
+                            narration: scene4_narration,
+                            duration: 6,
+                            visualPromptPreset: 'Escena Atmosférica (Atmospheric Scene)',
+                            visualPromptFreeText: `A stylized shot of the three final products arranged artfully. Text overlay: 'Residuos a Valor'. Clean, bright, optimistic lighting.`,
+                            soundDesign: 'Music reaches a crescendo and fades out with a final resonant chord.'
+                        }
+                    ]
+                },
+                [ContentType.Texto]: {}, [ContentType.Imagen]: {}, [ContentType.Audio]: {}, [ContentType.Codigo]: {}
             }
-            rawData += `- **Análisis Inmediato**: Humedad (${solid.propiedades.analisisInmediato.humedad}%), Cenizas (${solid.propiedades.analisisInmediato.cenizas}%)\n`;
-        } else if (selectedMaterial.fase === 'Líquido') {
-            const liquid = selectedMaterial as LiquidMaterial;
-            rawData += `- **Poder Calorífico Superior**: ${liquid.propiedades.poderCalorificoSuperior_MJ_kg} MJ/kg\n`;
-            rawData += `- **Densidad**: ${liquid.propiedades.propiedadesFisicas.densidad_kg_m3} kg/m³\n`;
-            rawData += `- **pH**: ${liquid.propiedades.propiedadesFisicas.ph}\n`;
-        } else if (selectedMaterial.fase === 'Gaseoso') {
-            const gas = selectedMaterial as GaseousMaterial;
-            rawData += `- **Poder Calorífico Inferior**: ${gas.propiedades.poderCalorificoInferior_MJ_Nm3} MJ/Nm³\n`;
-            rawData += `- **Composición Principal**: H₂ (${gas.propiedades.composicion_vol_porcentaje.H2}%), CO (${gas.propiedades.composicion_vol_porcentaje.CO}%), CH₄ (${gas.propiedades.composicion_vol_porcentaje.CH4}%)\n`;
-        }
-        
-        onCreateContentFromMaterial(objective, rawData);
-    };
+        };
 
+        const newTask: Task = {
+            id: `task-visual-campaign-${Date.now()}`,
+            title: `Campaña Visual: Pirólisis de ${materialName}`,
+            createdAt: Date.now(),
+            status: 'Por Hacer',
+            contentType: ContentType.Video,
+            formData: newFormData,
+            isIntelligent: true,
+            agentId: 'Orquestador',
+            eventType: 'VisualCampaign',
+            subTasks: [
+                { name: 'Análisis de Guion y Estilo', status: 'pending' },
+                { name: 'Generación de Escenas Visuales', status: 'pending' },
+                { name: 'Diseño de Sonido y Sincronización', status: 'pending' },
+                { name: 'Renderizado y Compilación Final', status: 'pending' },
+            ],
+        };
+
+        onSaveTask(newTask, true);
+    };
 
     const handleEstimateConductivity = async () => {
         if (!selectedMaterial || selectedMaterial.fase !== 'Sólido') return;
@@ -746,11 +801,11 @@ export const PyrolysisHub: React.FC<PyrolysisHubProps> = ({ onSimulateMixture, o
                 const propiedadesFisicas = (solid.propiedades as any).propiedadesFisicas;
                 return (
                     <>
-                        {(comp.celulosa || comp.hemicelulosa || comp.lignina) && (
+                        {(comp.celulosa || comp.hemicellulosa || comp.lignina) && (
                             <Accordion title="Composición Lignocelulósica" defaultOpen>
                                 <div className="space-y-2">
                                     <DetailItem label="Celulosa" value={comp.celulosa} unit="%" />
-                                    <DetailItem label="Hemicelulosa" value={comp.hemicelulosa} unit="%" />
+                                    <DetailItem label="Hemicelulosa" value={comp.hemicellulosa} unit="%" />
                                     <DetailItem label="Lignina" value={comp.lignina} unit="%" />
                                 </div>
                             </Accordion>
@@ -1146,12 +1201,14 @@ export const PyrolysisHub: React.FC<PyrolysisHubProps> = ({ onSimulateMixture, o
                                         </button>
                                     </div>
                                     <button
-                                        onClick={handleUseForPrompt}
-                                        title="Usar datos clave en el Creador de Prompt"
-                                        className="text-xs font-semibold text-white bg-blue-600 hover:bg-blue-700 px-3 py-2 rounded-md transition-colors flex items-center gap-2"
+                                        onClick={handleCreateVisualCampaign}
+                                        title="Generar una tarea de campaña visual cinematográfica"
+                                        className="text-xs font-semibold text-white bg-purple-600 hover:bg-purple-700 px-3 py-2 rounded-md transition-colors flex items-center gap-2"
                                     >
-                                        <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" /></svg>
-                                        Usar para Prompt
+                                        <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                                            <path strokeLinecap="round" strokeLinejoin="round" d="M15 10l4.553-2.276A1 1 0 0121 8.618v6.764a1 1 0 01-1.447.894L15 14M5 18h8a2 2 0 002-2V8a2 2 0 00-2-2H5a2 2 0 00-2 2v8a2 2 0 002 2z" />
+                                        </svg>
+                                        Crear Campaña Visual
                                     </button>
                                 </div>
                             </div>
@@ -1253,4 +1310,4 @@ export const PyrolysisHub: React.FC<PyrolysisHubProps> = ({ onSimulateMixture, o
             </div>
         </div>
     );
-};
+}

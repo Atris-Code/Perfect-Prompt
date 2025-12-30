@@ -78,14 +78,17 @@ export const SceneEditor: React.FC<SceneEditorProps> = ({ scenes, onSceneChange,
                                 value={scene.sceneTitle}
                                 onChange={(e) => handleFieldChange(scene.id, 'sceneTitle', e.target.value)}
                             />
-                            <FormInput
-                                label="Duración (segundos)"
-                                id={`duration-${scene.id}`}
-                                name="duration"
-                                type="number"
-                                value={scene.duration}
-                                onChange={(e) => handleFieldChange(scene.id, 'duration', Number(e.target.value))}
-                            />
+                            <div>
+                                <FormInput
+                                    label="Duración (segundos)"
+                                    id={`duration-${scene.id}`}
+                                    name="duration"
+                                    type="number"
+                                    value={scene.duration}
+                                    onChange={(e) => handleFieldChange(scene.id, 'duration', Number(e.target.value))}
+                                />
+                                <p className="text-xs text-gray-500 mt-1">Guía: 5-10s. Escenas más largas deben dividirse.</p>
+                            </div>
                             <div className="md:col-span-2">
                                 <FormTextarea
                                     label="Narración"

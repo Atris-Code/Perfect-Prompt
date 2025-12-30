@@ -21,6 +21,102 @@
       border: 1px solid #D1D5DB;
       z-index: 0;
     }
+    /* Estilos para EcoCasa Simulator */
+    .ecocasa-body { background-color: #f9fafb; color: #1f2937; }
+    .ecocasa-card { background-color: #ffffff; border: 1px solid #e5e7eb; }
+    .ecocasa-input-field { background-color: #ffffff; border: 1px solid #d1d5db; color: #111827; }
+    .ecocasa-output-box { background-color: #f9fafb; border-left-width: 4px; padding: 1rem; }
+    .ecocasa-rating-A { border-color: #166534; background-color: #16a34a; color: white; } /* Verde Oscuro */
+    .ecocasa-rating-B { border-color: #15803d; background-color: #22c55e; color: white; }
+    .ecocasa-rating-C { border-color: #4d7c0f; background-color: #84cc16; color: black; }
+    .ecocasa-rating-D { border-color: #ca8a04; background-color: #eab308; color: black; }
+    .ecocasa-rating-E { border-color: #d97706; background-color: #f97316; color: white; }
+    .ecocasa-rating-F { border-color: #dc2626; background-color: #ef4444; color: white; }
+    .ecocasa-rating-G { border-color: #991b1b; background-color: #b91c1c; color: white; } /* Rojo */
+    .ecocasa-improvement-card { background-color: #f3f4f6; }
+
+    /* Estilos para Detailed Project Input */
+    .detailed-project-container { background-color: #f9fafb; color: #1f2937; padding: 2rem; font-family: 'Inter', sans-serif; border-radius: 1rem; }
+    .detailed-project-container .input-field { background-color: #ffffff; border: 1px solid #d1d5db; color: #1f2937; }
+    .detailed-project-container details > summary { cursor: pointer; font-weight: bold; background-color: #f3f4f6; padding: 0.5rem 1rem; border-radius: 0.25rem; margin-bottom: 0.5rem; transition: background-color 0.2s; }
+    .detailed-project-container details > summary:hover { background-color: #e5e7eb; }
+    .detailed-project-container details[open] > summary { background-color: #e5e7eb; }
+    .detailed-project-container .section-content { padding: 1rem; border: 1px solid #e5e7eb; border-radius: 0.25rem; margin-bottom: 1rem; background-color: #ffffff;}
+    
+    /* Estilos para el Avatar de Marco */
+    .marco-avatar {
+      position: fixed;
+      bottom: 2rem;
+      right: 2rem;
+      width: 64px;
+      height: 64px;
+      background-color: #0f172a;
+      border-radius: 50%;
+      border: 2px solid #22d3ee;
+      box-shadow: 0 0 15px rgba(34, 211, 238, 0.4), 0 0 5px rgba(34, 211, 238, 0.6) inset;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      cursor: pointer;
+      z-index: 1000;
+      transition: all 0.3s ease-in-out;
+      animation: pulse 4s infinite ease-in-out;
+    }
+
+    .marco-avatar:hover {
+      transform: scale(1.1);
+      box-shadow: 0 0 25px rgba(34, 211, 238, 0.6), 0 0 8px rgba(34, 211, 238, 0.8) inset;
+    }
+
+    .marco-avatar svg {
+      width: 60%;
+      height: 60%;
+      color: #67e8f9;
+    }
+
+    .marco-avatar .mouth {
+      transition: transform 0.2s ease-in-out;
+    }
+
+    .marco-avatar.speaking {
+      animation: none;
+      border-color: #a5f3fc;
+      box-shadow: 0 0 25px rgba(165, 243, 252, 0.7), 0 0 10px rgba(165, 243, 252, 0.9) inset;
+      animation: speak-glow 1.5s infinite ease-in-out;
+    }
+
+    .marco-avatar.speaking .mouth {
+      animation: speak-mouth 0.8s infinite ease-in-out;
+    }
+
+    @keyframes pulse {
+      0%, 100% { transform: scale(1); box-shadow: 0 0 15px rgba(34, 211, 238, 0.4), 0 0 5px rgba(34, 211, 238, 0.6) inset; }
+      50% { transform: scale(1.05); box-shadow: 0 0 20px rgba(34, 211, 238, 0.5), 0 0 7px rgba(34, 211, 238, 0.7) inset; }
+    }
+
+    @keyframes speak-glow {
+      0%, 100% { transform: scale(1.05); opacity: 0.9; }
+      50% { transform: scale(1.1); opacity: 1; }
+    }
+
+    @keyframes speak-mouth {
+      0%, 100% { transform: scaleY(0.2); }
+      50% { transform: scaleY(1); }
+    }
+    /* Custom scrollbar for dark mode */
+    .custom-scrollbar::-webkit-scrollbar {
+        width: 8px;
+    }
+    .custom-scrollbar::-webkit-scrollbar-track {
+        background: #1e293b; /* slate-800 */
+    }
+    .custom-scrollbar::-webkit-scrollbar-thumb {
+        background: #475569; /* slate-600 */
+        border-radius: 4px;
+    }
+    .custom-scrollbar::-webkit-scrollbar-thumb:hover {
+        background: #64748b; /* slate-500 */
+    }
   </style>
 <script type="importmap">
 {

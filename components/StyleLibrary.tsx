@@ -4,7 +4,7 @@ import { CLASSIFIED_STYLES } from '../data/styles';
 import type { StyleDefinition, VideoPreset } from '../types';
 import { SENSATION_CATEGORIES } from '../data/sensations';
 import { ALL_VIDEO_PRESETS } from '../data/videoPresets';
-import AddStyleModal from './AddStyleModal';
+import PromptContributionModal from './AddStyleModal';
 
 const InspirationIcon = () => (
   <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4 mr-2 text-gray-500" viewBox="0 0 20 20" fill="currentColor">
@@ -196,12 +196,11 @@ const StyleCard: React.FC<{
 
 interface StyleLibraryProps {
   allStyles: StyleDefinition[];
-  onAddStyle: (newStyle: StyleDefinition) => void;
   onApplyVideoStyle: (style: StyleDefinition) => void;
   onApplyPepStyle: (style: StyleDefinition) => void;
 }
 
-export const StyleLibrary: React.FC<StyleLibraryProps> = ({ allStyles, onAddStyle, onApplyVideoStyle, onApplyPepStyle }) => {
+export const StyleLibrary: React.FC<StyleLibraryProps> = ({ allStyles, onApplyVideoStyle, onApplyPepStyle }) => {
   const [searchTerm, setSearchTerm] = useState('');
   const [selectedCategory, setSelectedCategory] = useState('');
   const [selectedSensation, setSelectedSensation] = useState('');
@@ -249,6 +248,13 @@ export const StyleLibrary: React.FC<StyleLibraryProps> = ({ allStyles, onAddStyl
     });
   };
 
+  const handleSavePrompt = (handoffJson: any) => {
+    console.log("--- PROMPT CONTRIBUTION HANDOFF TO GOVERNANCE ---");
+    console.log(JSON.stringify(handoffJson, null, 2));
+    alert("Propuesta de prompt enviada al sistema de gobernanza. Revisa la consola para ver el payload JSON.");
+    setIsModalOpen(false);
+  };
+
   const clearFilters = () => {
     setSearchTerm('');
     setSelectedCategory('');
@@ -257,12 +263,12 @@ export const StyleLibrary: React.FC<StyleLibraryProps> = ({ allStyles, onAddStyl
 
   return (
     <div>
-      {isModalOpen && <AddStyleModal onClose={() => setIsModalOpen(false)} onSave={onAddStyle} />}
+      {isModalOpen && <PromptContributionModal onClose={() => setIsModalOpen(false)} onSave={handleSavePrompt} />}
       
       <header className="mb-10 text-center">
-        <h2 className="text-3xl font-bold text-gray-900">Biblioteca de Estilos</h2>
+        <h2 className="text-3xl font-bold text-gray-900">Biblioteca de Prompts</h2>
         <p className="mt-2 text-md text-gray-600 max-w-3xl mx-auto">
-          Explora, filtra y utiliza una curada colección de estilos artísticos. Copia su estructura JSON para usarla en tus prompts o añade tus propias creaciones.
+          Explora, filtra y utiliza una curada colección de estilos y prompts. Sube tus propias creaciones para que la comunidad las valide y ganes reputación.
         </p>
       </header>
       
@@ -270,7 +276,7 @@ export const StyleLibrary: React.FC<StyleLibraryProps> = ({ allStyles, onAddStyl
         <div className="flex flex-wrap items-center justify-center gap-x-8 gap-y-6">
             <div className="text-center">
                 <div className="text-4xl font-bold text-blue-700">{stats.total}</div>
-                <div className="text-sm font-semibold text-gray-600 mt-1">Estilos Totales</div>
+                <div className="text-sm font-semibold text-gray-600 mt-1">Prompts y Estilos</div>
             </div>
             <div className="h-16 w-px bg-gray-200 hidden md:block"></div>
             {stats.byCategory.map(([category, count]) => (
@@ -328,11 +334,11 @@ export const StyleLibrary: React.FC<StyleLibraryProps> = ({ allStyles, onAddStyl
           </div>
         </div>
         <div className="mt-4 flex justify-between items-center">
-          <p className="text-sm text-gray-600"><span className="font-bold text-gray-800">{filteredStyles.length}</span> de <span className="font-bold text-gray-800">{allStyles.length}</span> estilos mostrados.</p>
+          <p className="text-sm text-gray-600"><span className="font-bold text-gray-800">{filteredStyles.length}</span> de <span className="font-bold text-gray-800">{allStyles.length}</span> elementos mostrados.</p>
           <div className="flex gap-4">
               <button onClick={clearFilters} className="text-sm font-semibold text-gray-700 hover:text-blue-600">Limpiar Filtros</button>
               <button onClick={() => setIsModalOpen(true)} className="text-sm font-semibold text-white bg-blue-600 hover:bg-blue-700 px-4 py-2 rounded-md shadow-sm">
-                Añadir Estilo Propio
+                Subir Prompt Testeado
               </button>
           </div>
         </div>

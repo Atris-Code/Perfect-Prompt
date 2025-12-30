@@ -168,23 +168,6 @@ export const KnowledgeBase: React.FC<KnowledgeBaseProps> = ({ sources, onAddSour
     const [error, setError] = useState('');
     const [isExtracting, setIsExtracting] = useState<string | null>(null);
 
-    const staticSources = useMemo(() => [
-        { name: "Utilities and Energy Efficient Design", content: KNOWLEDGE_BASE.UTILITIES_ENERGY_DESIGN },
-        { name: "Análisis del Ciclo de Vida de Llantas (Trujillo, 2024)", content: KNOWLEDGE_BASE.PYROLYSIS_PROCESS },
-        { name: "ecoHORNET Pyrolysis Installation", content: KNOWLEDGE_BASE.ECO_HORNET_TECHNOLOGY },
-        { name: "Conversión de pirólisis en diésel", content: KNOWLEDGE_BASE.DIESEL_CONVERSION_PROCESS },
-        { name: "Modelado y simulación del proceso de pirólisis", content: KNOWLEDGE_BASE.BIOMASS_PYROLYSIS_MODELING },
-        { name: "Interacción de zeolitas en pirólisis de plásticos", content: KNOWLEDGE_BASE.ZEOLITES_IN_PLASTICS_PYROLYSIS },
-        { name: "Evaluación de catalizadores bifuncionales", content: KNOWLEDGE_BASE.BIFUNCTIONAL_CATALYSTS_EVALUATION },
-        { name: "Optimización de Bio-oil (Cáscara de Maní, Versión CICAT)", content: KNOWLEDGE_BASE.BIO_OIL_OPTIMIZATION_PEANUT_SHELL_V2_CICAT },
-        { name: "Patente: Catalizador para pirólisis rápida", content: KNOWLEDGE_BASE.OXYGENATED_FEEDSTOCK_PYROLYSIS_PATENT },
-        { name: "Análisis Comparativo de Aceite de Pirólisis", content: KNOWLEDGE_BASE.COMPARATIVE_ANALYSIS },
-        { name: "Ficha Técnica: Aceite de Cocina Usado", content: KNOWLEDGE_BASE.TECHNICAL_DATA_SHEET },
-        { name: "Hábitos de consumo de la Generación Z", content: KNOWLEDGE_BASE.GEN_Z_CONSUMER_HABITS },
-    ], []);
-
-    const allSources = useMemo(() => [...staticSources, ...sources], [staticSources, sources]);
-
     const handleCreateVirtualMaterial = async (source: KnowledgeSource) => {
         setIsExtracting(source.name);
         setError('');
@@ -316,10 +299,10 @@ export const KnowledgeBase: React.FC<KnowledgeBaseProps> = ({ sources, onAddSour
             <div className="mb-8">
                  <div className="flex justify-between items-center mb-4">
                     <h3 className="text-xl font-bold text-gray-800">Fuentes de Conocimiento Documental Activas</h3>
-                    {sources.length > 0 && <button onClick={onClearSources} className="text-sm font-semibold text-red-600 hover:text-red-800">Limpiar Añadidos</button>}
+                    <button onClick={onClearSources} className="text-sm font-semibold text-red-600 hover:text-red-800">Limpiar Añadidos</button>
                 </div>
                 <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-                    {allSources.map(source => (
+                    {sources.map(source => (
                         <div key={source.name} className="bg-white p-6 rounded-lg border border-gray-200 shadow-sm flex flex-col">
                             <h4 className="font-bold text-lg text-blue-700 truncate" title={source.name}>{source.name}</h4>
                             <p className="text-sm text-gray-600 mt-2 h-20 overflow-hidden text-ellipsis flex-grow">{source.content.substring(0, 250)}...</p>
@@ -335,7 +318,7 @@ export const KnowledgeBase: React.FC<KnowledgeBaseProps> = ({ sources, onAddSour
                             </div>
                         </div>
                     ))}
-                     {allSources.length === 0 && (
+                     {sources.length === 0 && (
                         <div className="md:col-span-3 border-2 border-dashed border-gray-300 rounded-lg flex items-center justify-center text-gray-500 text-sm p-12">
                             Añade un documento para empezar.
                         </div>

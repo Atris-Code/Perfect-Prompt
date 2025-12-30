@@ -1,7 +1,8 @@
 // FIX: Changed import of 'VideoPreset' from './videoPresets' to '../types' to resolve export errors.
 import type { VideoPreset } from '../types';
 
-const interviews: VideoPreset[] = [
+// FIX: Export 'interviews' to make it available for import in other modules.
+export const interviews: VideoPreset[] = [
     {
         "preset_name": "Entrevista Íntima (Estilo Errol Morris)",
         "category": "Entrevistas",
@@ -74,7 +75,8 @@ const interviews: VideoPreset[] = [
     }
 ];
 
-const archivalFootage: VideoPreset[] = [
+// FIX: Export 'archivalFootage' to make it available for import in other modules.
+export const archivalFootage: VideoPreset[] = [
     {
         "preset_name": "Fotografía Antigua (Efecto Ken Burns)",
         "category": "Material de Archivo (Archival Footage)",
@@ -147,7 +149,8 @@ const archivalFootage: VideoPreset[] = [
     }
 ];
 
-const bRoll: VideoPreset[] = [
+// FIX: Export 'bRoll' to make it available for import in other modules.
+export const bRoll: VideoPreset[] = [
     {
         "preset_name": "Detalle Simbólico (Symbolic Detail)",
         "category": "Tomas de Recurso (B-Roll)",
@@ -220,7 +223,8 @@ const bRoll: VideoPreset[] = [
     }
 ];
 
-const dramaticReenactments: VideoPreset[] = [
+// FIX: Export 'dramaticReenactments' to make it available for import in other modules.
+export const dramaticReenactments: VideoPreset[] = [
     {
         "preset_name": "Recreación Cinematográfica",
         "category": "Recreaciones Dramáticas",

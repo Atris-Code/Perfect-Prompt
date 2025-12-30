@@ -1,8 +1,13 @@
+
+
 import React, { useState, useEffect, useRef } from 'react';
-import type { Task, TaskStatus, SubTask, MapClickPayload, Asset } from './types';
+// FIX: Corrected import path for types.
+import type { Task, TaskStatus, SubTask, MapClickPayload, Asset, HandoffData } from './types';
 import AddTaskModal from './components/AddTaskModal';
 import { MapComponent } from './components/MapComponent';
 import * as corporateDataService from './services/corporateDataService';
+import { ContentType } from './types';
+import { PRESETS } from './data/presets';
 
 const STATUS_COLUMNS: TaskStatus[] = ['Por Hacer', 'En Progreso', 'Completado'];
 
@@ -34,7 +39,7 @@ interface TaskManagerProps {
   onUpdateStatus: (taskId: string, newStatus: TaskStatus) => void;
   onUpdateTask: (task: Task) => void;
   onDelete: (taskId: string) => void;
-  onLoad: (taskId: string) => void;
+  onLoad: (taskId: string, presetName?: string) => void;
   onSaveTask: (task: Task) => void;
   setView: (view: any) => void;
   setInitialHubSearch: (term: string | null) => void;
@@ -45,7 +50,7 @@ interface TaskManagerProps {
 const TaskCard: React.FC<{ 
     task: Task; 
     onDelete: () => void; 
-    onLoad: () => void; 
+    onLoad: (taskId: string, presetName?: string) => void; 
     onDragStart: (e: React.DragEvent<HTMLDivElement>) => void;
     onSetPin: () => void;
     onGeoSearch: () => void;
@@ -78,6 +83,12 @@ const TaskCard: React.FC<{
 
   const isLoadNarrativeAction = task.status === 'Completado' && task.eventType === 'Assay';
 
+  const isOverdue = task.dueDate && task.dueDate < Date.now();
+  
+  const handoff = task.formData?.specifics?.[ContentType.Texto]?.originalData as HandoffData | undefined;
+  const isHandoffTask = handoff && handoff.handoffId;
+  const suggestedPresets = isHandoffTask ? handoff.strategicBrief?.suggestedPresets || [] : [];
+
   return (
     <div
       draggable
@@ -85,13 +96,47 @@ const TaskCard: React.FC<{
       className="bg-white p-4 mb-4 rounded-lg border border-gray-200 shadow-sm cursor-grab active:cursor-grabbing transform transition-all hover:shadow-md hover:border-blue-300"
     >
       <h4 className="font-bold text-gray-800">{task.title}</h4>
+      {task.stateLabel && (
+        <span className="mt-1 text-xs font-semibold uppercase bg-yellow-100 text-yellow-800 px-2 py-0.5 rounded-full inline-block">
+            {task.stateLabel}
+        </span>
+      )}
+      {isHandoffTask && (
+        <div className="mt-2 text-xs text-gray-500 space-y-1">
+          <p><strong>De:</strong> {handoff.strategicBrief?.moderator?.name}</p>
+          <p><strong>Público Objetivo:</strong> {handoff.strategicBrief?.targetAudiences?.join(', ')}</p>
+          <p><strong>Contexto:</strong> <span className="italic">"{handoff.strategicBrief?.synthesis}"</span></p>
+        </div>
+      )}
       {task.isIntelligent && task.subTasks && <SubTaskDisplay subTasks={task.subTasks} />}
       <p className="text-xs text-gray-500 mt-2">Creado: {new Date(task.createdAt).toLocaleDateString()}</p>
+      {task.dueDate && (
+        <p className={`text-xs mt-1 font-semibold ${isOverdue ? 'text-red-500' : 'text-gray-500'}`}>
+          Vence: {new Date(task.dueDate).toLocaleDateString()}
+        </p>
+      )}
       <p className="text-xs text-gray-500 mt-1">Tipo: <span className="font-semibold">{task.contentType}</span></p>
        {task.latitude && task.longitude && (
             <p className="text-xs text-gray-500 mt-1">Ubicación: <span className="font-mono">{task.latitude.toFixed(4)}, {task.longitude.toFixed(4)}</span></p>
         )}
       
+      {isHandoffTask && (
+        <div className="mt-3 pt-3 border-t">
+          <h5 className="text-xs font-semibold text-gray-500 mb-2">Acciones Sugeridas (M6):</h5>
+          <div className="space-y-2">
+            {suggestedPresets.map(presetName => (
+              <button
+                key={presetName}
+                onClick={() => onLoad(task.id, presetName)}
+                className="w-full text-left p-2 bg-blue-50 hover:bg-blue-100 text-blue-800 text-sm font-semibold rounded-md transition-colors"
+              >
+                ► {presetName.replace(/_/g, ' ').replace('preset', '').trim()}
+              </button>
+            ))}
+          </div>
+        </div>
+      )}
+
       {task.videoUrl && (
         <div className="mt-3">
             <video src={task.videoUrl} controls className="w-full rounded-md bg-black" />
@@ -104,7 +149,7 @@ const TaskCard: React.FC<{
                 onClick={() => setIsReportVisible(!isReportVisible)} 
                 className="text-xs font-semibold text-gray-700 hover:text-blue-600 w-full text-left flex items-center"
             >
-                <svg xmlns="http://www.w3.org/2000/svg" className={`h-4 w-4 mr-1 transition-transform transform ${isReportVisible ? 'rotate-90' : ''}`} fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M9 5l7 7-7 7" /></svg>
+                <svg xmlns="http://www.w3.org/2000/svg" className={`h-4 w-4 mr-1 transition-transform transform ${isReportVisible ? 'rotate-90' : ''}`} fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" /></svg>
                 {isReportVisible ? 'Ocultar' : 'Ver'} Documento Vivo
             </button>
             {isReportVisible && (
@@ -149,11 +194,11 @@ const TaskCard: React.FC<{
         )}
         <button onClick={onSetPin} className="text-xs font-semibold text-gray-600 hover:text-gray-800 transition-colors p-2 rounded-md hover:bg-gray-100">Fijar Ubicación</button>
         <button 
-            onClick={isLoadNarrativeAction ? onLoadNarrative : onLoad} 
+            onClick={() => isLoadNarrativeAction ? onLoadNarrative() : onLoad(task.id)} 
             className="text-xs font-semibold text-blue-600 hover:text-blue-800 transition-colors p-2 rounded-md hover:bg-blue-50"
             disabled={isLoadingNarrative}
         >
-            {isLoadingNarrative ? 'Cargando...' : 'Cargar'}
+            {isLoadingNarrative ? 'Cargando...' : isLoadNarrativeAction ? 'Cargar Narrativa' : 'Cargar'}
         </button>
         <button onClick={handleDeleteClick} className={`text-xs font-semibold transition-colors p-2 rounded-md ${showConfirm ? 'text-white bg-red-600 hover:bg-red-700' : 'text-red-600 hover:text-red-800 hover:bg-red-50'}`}>
           {showConfirm ? '¿Confirmar?' : 'Eliminar'}
@@ -167,7 +212,7 @@ const TaskColumn: React.FC<{
   status: TaskStatus;
   tasks: Task[];
   onDelete: (taskId: string) => void;
-  onLoad: (taskId: string) => void;
+  onLoad: (taskId: string, presetName?: string) => void;
   onDragStart: (e: React.DragEvent<HTMLDivElement>, taskId: string) => void;
   onDrop: (e: React.DragEvent<HTMLDivElement>) => void;
   onDragOver: (e: React.DragEvent<HTMLDivElement>) => void;
@@ -198,7 +243,7 @@ const TaskColumn: React.FC<{
             key={task.id}
             task={task}
             onDelete={() => onDelete(task.id)}
-            onLoad={() => onLoad(task.id)}
+            onLoad={(taskId, presetName) => onLoad(taskId, presetName)}
             onDragStart={(e) => onDragStart(e, task.id)}
             onSetPin={() => onSetPin(task)}
             onGeoSearch={() => onGeoSearch(task)}
@@ -389,8 +434,13 @@ export const TaskManager: React.FC<TaskManagerProps> = ({ tasks, onUpdateStatus,
     } catch(e) {
         console.error("Error loading narrative", e);
         alert("Error al cargar la narrativa.");
+    } finally {
         setIsLoadingNarrative(null);
     }
+  };
+
+  const handleLoadTask = (taskId: string, presetName?: string) => {
+      onLoad(taskId, presetName);
   };
 
   const tasksByStatus = (status: TaskStatus) => tasks.filter(t => t.status === status);
@@ -489,7 +539,7 @@ export const TaskManager: React.FC<TaskManagerProps> = ({ tasks, onUpdateStatus,
             status={status}
             tasks={tasksByStatus(status)}
             onDelete={onDelete}
-            onLoad={onLoad}
+            onLoad={handleLoadTask}
             onDragStart={handleDragStart}
             onDrop={(e) => handleDrop(e, status)}
             onDragOver={handleDragOver}

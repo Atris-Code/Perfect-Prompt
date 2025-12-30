@@ -39,6 +39,12 @@ const LoadingSpinner: React.FC = () => (
     </div>
 );
 
+const ModeTab: React.FC<{ tabMode: 'solid' | 'liquid' | 'gas', label: string, icon: React.ReactNode, activeMode: 'solid' | 'liquid' | 'gas', onClick: (mode: 'solid' | 'liquid' | 'gas') => void }> = ({ tabMode, label, icon, activeMode, onClick }) => (
+    <button onClick={() => onClick(tabMode)} className={`flex items-center gap-3 px-4 py-2 text-sm font-semibold rounded-t-lg border-b-2 transition-colors ${activeMode === tabMode ? 'border-blue-500 text-blue-600' : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'}`}>
+        {icon} {label}
+    </button>
+);
+
 export const AssayManager: React.FC<AssayManagerProps> = ({ tasks, onSaveTask, onUpdateTask, setView }) => {
     const { t } = useTranslations();
     const [mode, setMode] = useState<'solid' | 'liquid' | 'gas'>('solid');
@@ -277,12 +283,6 @@ export const AssayManager: React.FC<AssayManagerProps> = ({ tasks, onSaveTask, o
         }
     }, [liquidObjective, liquidMethodology]);
     
-    const ModeTab: React.FC<{ tabMode: 'solid' | 'liquid' | 'gas', label: string, icon: React.ReactNode }> = ({ tabMode, label, icon }) => (
-        <button onClick={() => setMode(tabMode)} className={`flex items-center gap-3 px-4 py-2 text-sm font-semibold rounded-t-lg border-b-2 transition-colors ${mode === tabMode ? 'border-blue-500 text-blue-600' : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'}`}>
-            {icon} {label}
-        </button>
-    );
-
     const getVerdictColor = (estado?: Verdict['estado'] | string) => {
         switch (estado) {
             case 'OK':
@@ -318,9 +318,9 @@ export const AssayManager: React.FC<AssayManagerProps> = ({ tasks, onSaveTask, o
 
             <div className="border-b border-gray-200 mb-6">
                 <nav className="-mb-px flex space-x-8" aria-label="Tabs">
-                    <ModeTab tabMode="solid" label="Modo Sólido" icon={<>🔬</>} />
-                    <ModeTab tabMode="liquid" label="Modo Líquido" icon={<>💧</>} />
-                    <ModeTab tabMode="gas" label="Modo Gaseoso" icon={<>💨</>} />
+                    <ModeTab tabMode="solid" label="Modo Sólido" icon={<>🔬</>} activeMode={mode} onClick={setMode} />
+                    <ModeTab tabMode="liquid" label="Modo Líquido" icon={<>💧</>} activeMode={mode} onClick={setMode} />
+                    <ModeTab tabMode="gas" label="Modo Gaseoso" icon={<>💨</>} activeMode={mode} onClick={setMode} />
                 </nav>
             </div>
             

@@ -10,7 +10,8 @@ export const PYROLYSIS_MATERIALS: PyrolysisMaterial[] = [
       "composicion": { "celulosa": 42.5, "hemicelulosa": 26.0, "lignina": 28.5 },
       "analisisElemental": { "carbono": 50.8, "hidrogeno": 6.2, "oxigeno": 42.5, "nitrogeno": 0.1, "azufre": 0.02 },
       "analisisInmediato": { "humedad": 9.5, "cenizas": 0.5, "materiaVolatil": 82.0, "carbonoFijo": 17.5 },
-      "poderCalorificoSuperior": 19.8
+      "poderCalorificoSuperior": 19.8,
+      "propiedadesFisicas": { "densidad_kg_m3": 450 }
     }
   },
   {
@@ -22,7 +23,8 @@ export const PYROLYSIS_MATERIALS: PyrolysisMaterial[] = [
       "composicion": { "celulosa": 45.0, "hemicelulosa": 30.0, "lignina": 22.0 },
       "analisisElemental": { "carbono": 49.5, "hidrogeno": 6.0, "oxigeno": 44.0, "nitrogeno": 0.2, "azufre": 0.02 },
       "analisisInmediato": { "humedad": 11.0, "cenizas": 0.8, "materiaVolatil": 78.0, "carbonoFijo": 21.2 },
-      "poderCalorificoSuperior": 19.2
+      "poderCalorificoSuperior": 19.2,
+      "propiedadesFisicas": { "densidad_kg_m3": 720 }
     }
   },
   {
@@ -34,7 +36,8 @@ export const PYROLYSIS_MATERIALS: PyrolysisMaterial[] = [
       "composicion": { "celulosa": 35.0, "hemicelulosa": 25.0, "lignina": 20.0 },
       "analisisElemental": { "carbono": 47.5, "hidrogeno": 5.8, "oxigeno": 40.5, "nitrogeno": 0.8, "azufre": 0.1 },
       "analisisInmediato": { "humedad": 12.0, "cenizas": 5.5, "materiaVolatil": 75.0, "carbonoFijo": 19.5 },
-      "poderCalorificoSuperior": 18.5
+      "poderCalorificoSuperior": 18.5,
+      "propiedadesFisicas": { "densidad_kg_m3": 350 }
     }
   },
   {
@@ -46,7 +49,8 @@ export const PYROLYSIS_MATERIALS: PyrolysisMaterial[] = [
       "composicion": { "celulosa": 38.0, "hemicelulosa": 28.0, "lignina": 17.0 },
       "analisisElemental": { "carbono": 46.0, "hidrogeno": 5.5, "oxigeno": 42.0, "nitrogeno": 0.6, "azufre": 0.15 },
       "analisisInmediato": { "humedad": 8.0, "cenizas": 7.0, "materiaVolatil": 70.0, "carbonoFijo": 23.0 },
-      "poderCalorificoSuperior": 17.5
+      "poderCalorificoSuperior": 17.5,
+      "propiedadesFisicas": { "densidad_kg_m3": 100 }
     }
   },
   {
@@ -58,7 +62,8 @@ export const PYROLYSIS_MATERIALS: PyrolysisMaterial[] = [
       "composicion": { "celulosa": 39.0, "hemicelulosa": 26.0, "lignina": 18.0 },
       "analisisElemental": { "carbono": 45.5, "hidrogeno": 6.0, "oxigeno": 42.5, "nitrogeno": 0.9, "azufre": 0.1 },
       "analisisInmediato": { "humedad": 10.0, "cenizas": 6.5, "materiaVolatil": 74.0, "carbonoFijo": 19.5 },
-      "poderCalorificoSuperior": 17.8
+      "poderCalorificoSuperior": 17.8,
+      "propiedadesFisicas": { "densidad_kg_m3": 80 }
     }
   },
   {
@@ -70,7 +75,8 @@ export const PYROLYSIS_MATERIALS: PyrolysisMaterial[] = [
       "composicion": { "celulosa": 35.0, "hemicelulosa": 25.0, "lignina": 20.0 },
       "analisisElemental": { "carbono": 40.0, "hidrogeno": 5.5, "oxigeno": 38.0, "nitrogeno": 0.5, "azufre": 0.05 },
       "analisisInmediato": { "humedad": 9.0, "cenizas": 17.0, "materiaVolatil": 65.0, "carbonoFijo": 18.0 },
-      "poderCalorificoSuperior": 15.6
+      "poderCalorificoSuperior": 15.6,
+      "propiedadesFisicas": { "densidad_kg_m3": 120 }
     }
   },
   {
@@ -82,7 +88,8 @@ export const PYROLYSIS_MATERIALS: PyrolysisMaterial[] = [
       "composicion": { "celulosa": 25.0, "hemicelulosa": 20.0, "lignina": 30.0 },
       "analisisElemental": { "carbono": 52.0, "hidrogeno": 6.5, "oxigeno": 38.0, "nitrogeno": 1.2, "azufre": 0.2 },
       "analisisInmediato": { "humedad": 10.0, "cenizas": 4.0, "materiaVolatil": 76.0, "carbonoFijo": 20.0 },
-      "poderCalorificoSuperior": 20.5
+      "poderCalorificoSuperior": 20.5,
+      "propiedadesFisicas": { "densidad_kg_m3": 550 }
     }
   },
   {
@@ -94,7 +101,8 @@ export const PYROLYSIS_MATERIALS: PyrolysisMaterial[] = [
       "composicion": { "celulosa": 40.0, "hemicelulosa": 20.0, "lignina": 15.0 },
       "analisisElemental": { "carbono": 44.0, "hidrogeno": 6.0, "oxigeno": 43.0, "nitrogeno": 1.5, "azufre": 0.1 },
       "analisisInmediato": { "humedad": 11.0, "cenizas": 6.0, "materiaVolatil": 72.0, "carbonoFijo": 22.0 },
-      "poderCalorificoSuperior": 17.2
+      "poderCalorificoSuperior": 17.2,
+      "propiedadesFisicas": { "densidad_kg_m3": 300 }
     }
   },
   {
@@ -106,7 +114,8 @@ export const PYROLYSIS_MATERIALS: PyrolysisMaterial[] = [
       "composicion": { "celulosa": 44.0, "hemicelulosa": 24.0, "lignina": 22.0 },
       "analisisElemental": { "carbono": 48.0, "hidrogeno": 5.8, "oxigeno": 44.5, "nitrogeno": 0.4, "azufre": 0.08 },
       "analisisInmediato": { "humedad": 10.0, "cenizas": 3.0, "materiaVolatil": 79.0, "carbonoFijo": 18.0 },
-      "poderCalorificoSuperior": 18.0
+      "poderCalorificoSuperior": 18.0,
+      "propiedadesFisicas": { "densidad_kg_m3": 150 }
     }
   },
   {
@@ -118,7 +127,8 @@ export const PYROLYSIS_MATERIALS: PyrolysisMaterial[] = [
       "composicion": { "celulosa": 40.0, "hemicelulosa": 27.0, "lignina": 23.0 },
       "analisisElemental": { "carbono": 47.0, "hidrogeno": 6.5, "oxigeno": 45.0, "nitrogeno": 0.3, "azufre": 0.05 },
       "analisisInmediato": { "humedad": 10.0, "cenizas": 2.5, "materiaVolatil": 80.0, "carbonoFijo": 17.5 },
-      "poderCalorificoSuperior": 18.2
+      "poderCalorificoSuperior": 18.2,
+      "propiedadesFisicas": { "densidad_kg_m3": 100 }
     }
   },
   {
@@ -130,7 +140,8 @@ export const PYROLYSIS_MATERIALS: PyrolysisMaterial[] = [
       "composicion": { "celulosa": 45.0, "hemicelulosa": 35.0, "lignina": 15.0 },
       "analisisElemental": { "carbono": 46.5, "hidrogeno": 6.2, "oxigeno": 46.0, "nitrogeno": 0.5, "azufre": 0.1 },
       "analisisInmediato": { "humedad": 9.0, "cenizas": 1.5, "materiaVolatil": 81.0, "carbonoFijo": 17.5 },
-      "poderCalorificoSuperior": 18.0
+      "poderCalorificoSuperior": 18.0,
+      "propiedadesFisicas": { "densidad_kg_m3": 180 }
     }
   },
   {
@@ -142,7 +153,8 @@ export const PYROLYSIS_MATERIALS: PyrolysisMaterial[] = [
       "composicion": { "celulosa": 33.0, "hemicelulosa": 26.0, "lignina": 35.0 },
       "analisisElemental": { "carbono": 50.0, "hidrogeno": 6.0, "oxigeno": 43.0, "nitrogeno": 0.4, "azufre": 0.06 },
       "analisisInmediato": { "humedad": 12.0, "cenizas": 1.0, "materiaVolatil": 75.0, "carbonoFijo": 24.0 },
-      "poderCalorificoSuperior": 19.5
+      "poderCalorificoSuperior": 19.5,
+      "propiedadesFisicas": { "densidad_kg_m3": 150 }
     }
   },
   {
@@ -154,7 +166,8 @@ export const PYROLYSIS_MATERIALS: PyrolysisMaterial[] = [
       "composicion": { "celulosa": 34.0, "hemicelulosa": 24.0, "lignina": 15.0 },
       "analisisElemental": { "carbono": 45.0, "hidrogeno": 5.8, "oxigeno": 41.0, "nitrogeno": 0.7, "azufre": 0.12 },
       "analisisInmediato": { "humedad": 8.5, "cenizas": 8.0, "materiaVolatil": 68.0, "carbonoFijo": 24.0 },
-      "poderCalorificoSuperior": 17.0
+      "poderCalorificoSuperior": 17.0,
+      "propiedadesFisicas": { "densidad_kg_m3": 90 }
     }
   },
   {
@@ -166,7 +179,8 @@ export const PYROLYSIS_MATERIALS: PyrolysisMaterial[] = [
       "composicion": { "celulosa": 40.0, "hemicelulosa": 25.0, "lignina": 25.0 },
       "analisisElemental": { "carbono": 48.0, "hidrogeno": 5.5, "oxigeno": 42.0, "nitrogeno": 2.0, "azufre": 0.2 },
       "analisisInmediato": { "humedad": 10.0, "cenizas": 4.5, "materiaVolatil": 73.0, "carbonoFijo": 22.5 },
-      "poderCalorificoSuperior": 18.8
+      "poderCalorificoSuperior": 18.8,
+      "propiedadesFisicas": { "densidad_kg_m3": 200 }
     }
   },
   {
@@ -178,7 +192,8 @@ export const PYROLYSIS_MATERIALS: PyrolysisMaterial[] = [
       "composicion": { "celulosa": 32.0, "hemicelulosa": 21.0, "lignina": 16.0 },
       "analisisElemental": { "carbono": 44.0, "hidrogeno": 6.0, "oxigeno": 40.0, "nitrogeno": 1.1, "azufre": 0.15 },
       "analisisInmediato": { "humedad": 12.0, "cenizas": 9.0, "materiaVolatil": 70.0, "carbonoFijo": 21.0 },
-      "poderCalorificoSuperior": 16.5
+      "poderCalorificoSuperior": 16.5,
+      "propiedadesFisicas": { "densidad_kg_m3": 130 }
     }
   },
   {
@@ -190,7 +205,8 @@ export const PYROLYSIS_MATERIALS: PyrolysisMaterial[] = [
       "composicion": { "celulosa": 50.0, "hemicelulosa": 20.0, "lignina": 25.0 },
       "analisisElemental": { "carbono": 51.0, "hidrogeno": 6.3, "oxigeno": 42.0, "nitrogeno": 0.1, "azufre": 0.03 },
       "analisisInmediato": { "humedad": 11.0, "cenizas": 0.7, "materiaVolatil": 80.0, "carbonoFijo": 19.3 },
-      "poderCalorificoSuperior": 20.0
+      "poderCalorificoSuperior": 20.0,
+      "propiedadesFisicas": { "densidad_kg_m3": 650 }
     }
   },
   {
@@ -202,7 +218,8 @@ export const PYROLYSIS_MATERIALS: PyrolysisMaterial[] = [
       "composicion": { "celulosa": 43.0, "hemicelulosa": 32.0, "lignina": 21.0 },
       "analisisElemental": { "carbono": 49.0, "hidrogeno": 6.1, "oxigeno": 44.2, "nitrogeno": 0.2, "azufre": 0.01 },
       "analisisInmediato": { "humedad": 9.0, "cenizas": 0.6, "materiaVolatil": 83.0, "carbonoFijo": 16.4 },
-      "poderCalorificoSuperior": 19.0
+      "poderCalorificoSuperior": 19.0,
+      "propiedadesFisicas": { "densidad_kg_m3": 250 }
     }
   },
   {
@@ -214,7 +231,8 @@ export const PYROLYSIS_MATERIALS: PyrolysisMaterial[] = [
       "composicion": { "celulosa": 26.0, "hemicelulosa": 24.0, "lignina": 40.0 },
       "analisisElemental": { "carbono": 53.0, "hidrogeno": 6.0, "oxigeno": 39.5, "nitrogeno": 1.0, "azufre": 0.1 },
       "analisisInmediato": { "humedad": 8.0, "cenizas": 1.5, "materiaVolatil": 78.0, "carbonoFijo": 20.5 },
-      "poderCalorificoSuperior": 21.0
+      "poderCalorificoSuperior": 21.0,
+      "propiedadesFisicas": { "densidad_kg_m3": 700 }
     }
   },
   {
@@ -226,7 +244,8 @@ export const PYROLYSIS_MATERIALS: PyrolysisMaterial[] = [
       "composicion": { "celulosa": 29.0, "hemicelulosa": 26.0, "lignina": 35.0 },
       "analisisElemental": { "carbono": 49.0, "hidrogeno": 6.0, "oxigeno": 42.0, "nitrogeno": 1.5, "azufre": 0.1 },
       "analisisInmediato": { "humedad": 10.0, "cenizas": 2.5, "materiaVolatil": 74.0, "carbonoFijo": 23.5 },
-      "poderCalorificoSuperior": 19.5
+      "poderCalorificoSuperior": 19.5,
+      "propiedadesFisicas": { "densidad_kg_m3": 400 }
     }
   },
   {
@@ -238,7 +257,8 @@ export const PYROLYSIS_MATERIALS: PyrolysisMaterial[] = [
       "composicion": { "celulosa": 45.0, "hemicelulosa": 25.0, "lignina": 20.0 },
       "analisisElemental": { "carbono": 48.5, "hidrogeno": 6.2, "oxigeno": 44.5, "nitrogeno": 0.3, "azufre": 0.02 },
       "analisisInmediato": { "humedad": 11.0, "cenizas": 1.0, "materiaVolatil": 82.0, "carbonoFijo": 17.0 },
-      "poderCalorificoSuperior": 18.9
+      "poderCalorificoSuperior": 18.9,
+      "propiedadesFisicas": { "densidad_kg_m3": 280 }
     }
   },
   {
@@ -250,7 +270,8 @@ export const PYROLYSIS_MATERIALS: PyrolysisMaterial[] = [
       "composicion": { "celulosa": 38.0, "hemicelulosa": 22.0, "lignina": 24.0 },
       "analisisElemental": { "carbono": 48.0, "hidrogeno": 5.9, "oxigeno": 43.0, "nitrogeno": 0.8, "azufre": 0.05 },
       "analisisInmediato": { "humedad": 13.0, "cenizas": 3.5, "materiaVolatil": 77.0, "carbonoFijo": 19.5 },
-      "poderCalorificoSuperior": 18.3
+      "poderCalorificoSuperior": 18.3,
+      "propiedadesFisicas": { "densidad_kg_m3": 300 }
     }
   },
   {
@@ -262,7 +283,8 @@ export const PYROLYSIS_MATERIALS: PyrolysisMaterial[] = [
       "composicion": { "celulosa": 36.0, "hemicelulosa": 24.0, "lignina": 18.0 },
       "analisisElemental": { "carbono": 41.0, "hidrogeno": 5.5, "oxigeno": 39.0, "nitrogeno": 0.6, "azufre": 0.1 },
       "analisisInmediato": { "humedad": 9.0, "cenizas": 15.0, "materiaVolatil": 66.0, "carbonoFijo": 19.0 },
-      "poderCalorificoSuperior": 15.9
+      "poderCalorificoSuperior": 15.9,
+      "propiedadesFisicas": { "densidad_kg_m3": 90 }
     }
   },
   {
@@ -274,7 +296,8 @@ export const PYROLYSIS_MATERIALS: PyrolysisMaterial[] = [
       "composicion": { "celulosa": 27.0, "hemicelulosa": 26.0, "lignina": 30.0 },
       "analisisElemental": { "carbono": 50.0, "hidrogeno": 6.1, "oxigeno": 41.0, "nitrogeno": 1.2, "azufre": 0.2 },
       "analisisInmediato": { "humedad": 9.5, "cenizas": 3.0, "materiaVolatil": 75.0, "carbonoFijo": 22.0 },
-      "poderCalorificoSuperior": 20.2
+      "poderCalorificoSuperior": 20.2,
+      "propiedadesFisicas": { "densidad_kg_m3": 200 }
     }
   },
   {
@@ -286,7 +309,8 @@ export const PYROLYSIS_MATERIALS: PyrolysisMaterial[] = [
       "composicion": { "celulosa": 44.0, "hemicelulosa": 25.0, "lignina": 22.0 },
       "analisisElemental": { "carbono": 47.5, "hidrogeno": 6.3, "oxigeno": 44.0, "nitrogeno": 0.9, "azufre": 0.08 },
       "analisisInmediato": { "humedad": 10.0, "cenizas": 3.5, "materiaVolatil": 78.0, "carbonoFijo": 18.5 },
-      "poderCalorificoSuperior": 18.4
+      "poderCalorificoSuperior": 18.4,
+      "propiedadesFisicas": { "densidad_kg_m3": 120 }
     }
   },
   {
@@ -298,7 +322,8 @@ export const PYROLYSIS_MATERIALS: PyrolysisMaterial[] = [
       "composicion": { "celulosa": 42.0, "hemicelulosa": 33.0, "lignina": 20.0 },
       "analisisElemental": { "carbono": 48.8, "hidrogeno": 6.4, "oxigeno": 44.0, "nitrogeno": 0.2, "azufre": 0.01 },
       "analisisInmediato": { "humedad": 10.5, "cenizas": 0.5, "materiaVolatil": 81.0, "carbonoFijo": 18.5 },
-      "poderCalorificoSuperior": 19.1
+      "poderCalorificoSuperior": 19.1,
+      "propiedadesFisicas": { "densidad_kg_m3": 600 }
     }
   },
   {
@@ -310,7 +335,8 @@ export const PYROLYSIS_MATERIALS: PyrolysisMaterial[] = [
       "composicion": { "celulosa": 44.0, "hemicelulosa": 29.0, "lignina": 23.0 },
       "analisisElemental": { "carbono": 50.1, "hidrogeno": 6.0, "oxigeno": 43.1, "nitrogeno": 0.3, "azufre": 0.02 },
       "analisisInmediato": { "humedad": 8.5, "cenizas": 0.8, "materiaVolatil": 82.5, "carbonoFijo": 16.7 },
-      "poderCalorificoSuperior": 19.3
+      "poderCalorificoSuperior": 19.3,
+      "propiedadesFisicas": { "densidad_kg_m3": 270 }
     }
   },
   {
@@ -322,7 +348,8 @@ export const PYROLYSIS_MATERIALS: PyrolysisMaterial[] = [
       "composicion": { "celulosa": 15.0, "hemicelulosa": 18.0, "lignina": 12.0 },
       "analisisElemental": { "carbono": 49.5, "hidrogeno": 7.0, "oxigeno": 35.0, "nitrogeno": 6.0, "azufre": 0.5 },
       "analisisInmediato": { "humedad": 9.0, "cenizas": 7.0, "materiaVolatil": 70.0, "carbonoFijo": 23.0 },
-      "poderCalorificoSuperior": 20.8
+      "poderCalorificoSuperior": 20.8,
+      "propiedadesFisicas": { "densidad_kg_m3": 600 }
     }
   },
   {
@@ -334,7 +361,8 @@ export const PYROLYSIS_MATERIALS: PyrolysisMaterial[] = [
       "composicion": { "celulosa": 28.0, "hemicelulosa": 25.0, "lignina": 40.0 },
       "analisisElemental": { "carbono": 52.5, "hidrogeno": 6.5, "oxigeno": 39.0, "nitrogeno": 1.0, "azufre": 0.1 },
       "analisisInmediato": { "humedad": 8.0, "cenizas": 2.0, "materiaVolatil": 76.0, "carbonoFijo": 22.0 },
-      "poderCalorificoSuperior": 20.5
+      "poderCalorificoSuperior": 20.5,
+      "propiedadesFisicas": { "densidad_kg_m3": 380 }
     }
   },
   {
@@ -346,7 +374,8 @@ export const PYROLYSIS_MATERIALS: PyrolysisMaterial[] = [
       "composicion": { "celulosa": 40.0, "hemicelulosa": 25.0, "lignina": 28.0 },
       "analisisElemental": { "carbono": 50.0, "hidrogeno": 6.0, "oxigeno": 42.5, "nitrogeno": 0.8, "azufre": 0.05 },
       "analisisInmediato": { "humedad": 12.0, "cenizas": 1.5, "materiaVolatil": 79.0, "carbonoFijo": 19.5 },
-      "poderCalorificoSuperior": 19.7
+      "poderCalorificoSuperior": 19.7,
+      "propiedadesFisicas": { "densidad_kg_m3": 320 }
     }
   },
   {
@@ -358,7 +387,8 @@ export const PYROLYSIS_MATERIALS: PyrolysisMaterial[] = [
       "composicion": { "celulosa": 35.0, "hemicelulosa": 26.0, "lignina": 15.0 },
       "analisisElemental": { "carbono": 45.0, "hidrogeno": 6.2, "oxigeno": 43.0, "nitrogeno": 1.0, "azufre": 0.1 },
       "analisisInmediato": { "humedad": 10.0, "cenizas": 5.0, "materiaVolatil": 75.0, "carbonoFijo": 20.0 },
-      "poderCalorificoSuperior": 17.6
+      "poderCalorificoSuperior": 17.6,
+      "propiedadesFisicas": { "densidad_kg_m3": 100 }
     }
   },
   {
@@ -370,7 +400,8 @@ export const PYROLYSIS_MATERIALS: PyrolysisMaterial[] = [
       "composicion": { "celulosa": 22.0, "hemicelulosa": 18.0, "lignina": 25.0 },
       "analisisElemental": { "carbono": 54.0, "hidrogeno": 7.0, "oxigeno": 35.0, "nitrogeno": 1.5, "azufre": 0.2 },
       "analisisInmediato": { "humedad": 50.0, "cenizas": 4.0, "materiaVolatil": 40.0, "carbonoFijo": 6.0 },
-      "poderCalorificoSuperior": 21.5
+      "poderCalorificoSuperior": 21.5,
+      "propiedadesFisicas": { "densidad_kg_m3": 600 }
     }
   },
   {
@@ -382,7 +413,8 @@ export const PYROLYSIS_MATERIALS: PyrolysisMaterial[] = [
       "composicion": { "celulosa": 37.0, "hemicelulosa": 27.0, "lignina": 18.0 },
       "analisisElemental": { "carbono": 45.5, "hidrogeno": 6.0, "oxigeno": 41.5, "nitrogeno": 0.8, "azufre": 0.15 },
       "analisisInmediato": { "humedad": 9.0, "cenizas": 7.5, "materiaVolatil": 71.0, "carbonoFijo": 21.5 },
-      "poderCalorificoSuperior": 17.3
+      "poderCalorificoSuperior": 17.3,
+      "propiedadesFisicas": { "densidad_kg_m3": 80 }
     }
   },
   {
@@ -394,7 +426,8 @@ export const PYROLYSIS_MATERIALS: PyrolysisMaterial[] = [
       "composicion": { "celulosa": 48.0, "hemicelulosa": 24.0, "lignina": 21.0 },
       "analisisElemental": { "carbono": 49.5, "hidrogeno": 6.5, "oxigeno": 43.5, "nitrogeno": 0.2, "azufre": 0.02 },
       "analisisInmediato": { "humedad": 10.0, "cenizas": 0.8, "materiaVolatil": 83.0, "carbonoFijo": 16.2 },
-      "poderCalorificoSuperior": 18.8
+      "poderCalorificoSuperior": 18.8,
+      "propiedadesFisicas": { "densidad_kg_m3": 450 }
     }
   },
   {
@@ -406,7 +439,8 @@ export const PYROLYSIS_MATERIALS: PyrolysisMaterial[] = [
       "composicion": { "celulosa": 25.0, "hemicelulosa": 22.0, "lignina": 50.0 },
       "analisisElemental": { "carbono": 52.0, "hidrogeno": 5.8, "oxigeno": 41.0, "nitrogeno": 0.5, "azufre": 0.05 },
       "analisisInmediato": { "humedad": 8.0, "cenizas": 1.2, "materiaVolatil": 75.0, "carbonoFijo": 23.8 },
-      "poderCalorificoSuperior": 20.3
+      "poderCalorificoSuperior": 20.3,
+      "propiedadesFisicas": { "densidad_kg_m3": 420 }
     }
   },
   {
@@ -418,7 +452,8 @@ export const PYROLYSIS_MATERIALS: PyrolysisMaterial[] = [
       "composicion": { "celulosa": 45.0, "hemicelulosa": 22.0, "lignina": 18.0 },
       "analisisElemental": { "carbono": 47.0, "hidrogeno": 6.1, "oxigeno": 44.0, "nitrogeno": 0.6, "azufre": 0.1 },
       "analisisInmediato": { "humedad": 11.0, "cenizas": 2.5, "materiaVolatil": 79.0, "carbonoFijo": 18.5 },
-      "poderCalorificoSuperior": 18.1
+      "poderCalorificoSuperior": 18.1,
+      "propiedadesFisicas": { "densidad_kg_m3": 110 }
     }
   },
   {
@@ -430,7 +465,8 @@ export const PYROLYSIS_MATERIALS: PyrolysisMaterial[] = [
       "composicion": { "celulosa": 50.0, "hemicelulosa": 18.0, "lignina": 20.0 },
       "analisisElemental": { "carbono": 46.0, "hidrogeno": 6.5, "oxigeno": 43.0, "nitrogeno": 1.2, "azufre": 0.15 },
       "analisisInmediato": { "humedad": 9.0, "cenizas": 5.0, "materiaVolatil": 76.0, "carbonoFijo": 19.0 },
-      "poderCalorificoSuperior": 17.9
+      "poderCalorificoSuperior": 17.9,
+      "propiedadesFisicas": { "densidad_kg_m3": 100 }
     }
   },
   {
@@ -442,7 +478,8 @@ export const PYROLYSIS_MATERIALS: PyrolysisMaterial[] = [
       "composicion": { "celulosa": 28.0, "hemicelulosa": 28.0, "lignina": 42.0 },
       "analisisElemental": { "carbono": 51.0, "hidrogeno": 6.0, "oxigeno": 42.0, "nitrogeno": 0.5, "azufre": 0.05 },
       "analisisInmediato": { "humedad": 8.0, "cenizas": 1.0, "materiaVolatil": 77.0, "carbonoFijo": 22.0 },
-      "poderCalorificoSuperior": 20.0
+      "poderCalorificoSuperior": 20.0,
+      "propiedadesFisicas": { "densidad_kg_m3": 650 }
     }
   },
   {
@@ -454,7 +491,8 @@ export const PYROLYSIS_MATERIALS: PyrolysisMaterial[] = [
       "composicion": { "celulosa": 27.0, "hemicelulosa": 28.0, "lignina": 42.0 },
       "analisisElemental": { "carbono": 50.5, "hidrogeno": 6.2, "oxigeno": 42.5, "nitrogeno": 0.4, "azufre": 0.04 },
       "analisisInmediato": { "humedad": 9.0, "cenizas": 1.2, "materiaVolatil": 76.0, "carbonoFijo": 22.8 },
-      "poderCalorificoSuperior": 19.8
+      "poderCalorificoSuperior": 19.8,
+      "propiedadesFisicas": { "densidad_kg_m3": 630 }
     }
   },
   {
@@ -466,7 +504,8 @@ export const PYROLYSIS_MATERIALS: PyrolysisMaterial[] = [
       "composicion": { "celulosa": 40.0, "hemicelulosa": 28.0, "lignina": 25.0 },
       "analisisElemental": { "carbono": 49.0, "hidrogeno": 6.0, "oxigeno": 44.0, "nitrogeno": 0.5, "azufre": 0.03 },
       "analisisInmediato": { "humedad": 14.0, "cenizas": 2.0, "materiaVolatil": 78.0, "carbonoFijo": 20.0 },
-      "poderCalorificoSuperior": 18.7
+      "poderCalorificoSuperior": 18.7,
+      "propiedadesFisicas": { "densidad_kg_m3": 310 }
     }
   },
   {
@@ -478,7 +517,8 @@ export const PYROLYSIS_MATERIALS: PyrolysisMaterial[] = [
       "composicion": { "celulosa": 42.0, "hemicelulosa": 28.0, "lignina": 26.0 },
       "analisisElemental": { "carbono": 50.0, "hidrogeno": 6.1, "oxigeno": 43.5, "nitrogeno": 0.1, "azufre": 0.01 },
       "analisisInmediato": { "humedad": 10.0, "cenizas": 0.9, "materiaVolatil": 81.0, "carbonoFijo": 18.1 },
-      "poderCalorificoSuperior": 19.4
+      "poderCalorificoSuperior": 19.4,
+      "propiedadesFisicas": { "densidad_kg_m3": 260 }
     }
   },
   {
@@ -490,7 +530,8 @@ export const PYROLYSIS_MATERIALS: PyrolysisMaterial[] = [
       "composicion": { "celulosa": 40.0, "hemicelulosa": 30.0, "lignina": 18.0 },
       "analisisElemental": { "carbono": 46.0, "hidrogeno": 6.0, "oxigeno": 42.0, "nitrogeno": 1.2, "azufre": 0.2 },
       "analisisInmediato": { "humedad": 10.0, "cenizas": 6.0, "materiaVolatil": 72.0, "carbonoFijo": 22.0 },
-      "poderCalorificoSuperior": 17.5
+      "poderCalorificoSuperior": 17.5,
+      "propiedadesFisicas": { "densidad_kg_m3": 90 }
     }
   },
   {
@@ -502,7 +543,8 @@ export const PYROLYSIS_MATERIALS: PyrolysisMaterial[] = [
       "composicion": { "celulosa": 35.0, "hemicelulosa": 28.0, "lignina": 19.0 },
       "analisisElemental": { "carbono": 47.0, "hidrogeno": 6.0, "oxigeno": 45.0, "nitrogeno": 0.6, "azufre": 0.1 },
       "analisisInmediato": { "humedad": 9.0, "cenizas": 5.0, "materiaVolatil": 77.0, "carbonoFijo": 18.0 },
-      "poderCalorificoSuperior": 18.0
+      "poderCalorificoSuperior": 18.0,
+      "propiedadesFisicas": { "densidad_kg_m3": 140 }
     }
   },
   {
@@ -514,7 +556,8 @@ export const PYROLYSIS_MATERIALS: PyrolysisMaterial[] = [
       "composicion": { "celulosa": 18.0, "hemicelulosa": 28.0, "lignina": 12.0 },
       "analisisElemental": { "carbono": 48.0, "hidrogeno": 7.0, "oxigeno": 35.0, "nitrogeno": 4.5, "azufre": 0.5 },
       "analisisInmediato": { "humedad": 10.0, "cenizas": 4.0, "materiaVolatil": 75.0, "carbonoFijo": 21.0 },
-      "poderCalorificoSuperior": 20.0
+      "poderCalorificoSuperior": 20.0,
+      "propiedadesFisicas": { "densidad_kg_m3": 550 }
     }
   },
   {
@@ -526,7 +569,8 @@ export const PYROLYSIS_MATERIALS: PyrolysisMaterial[] = [
       "composicion": { "celulosa": 45.0, "hemicelulosa": 20.0, "lignina": 22.0 },
       "analisisElemental": { "carbono": 46.5, "hidrogeno": 5.9, "oxigeno": 42.0, "nitrogeno": 0.8, "azufre": 0.15 },
       "analisisInmediato": { "humedad": 8.0, "cenizas": 6.0, "materiaVolatil": 73.0, "carbonoFijo": 21.0 },
-      "poderCalorificoSuperior": 17.8
+      "poderCalorificoSuperior": 17.8,
+      "propiedadesFisicas": { "densidad_kg_m3": 100 }
     }
   },
   {
@@ -538,7 +582,8 @@ export const PYROLYSIS_MATERIALS: PyrolysisMaterial[] = [
       "composicion": { "celulosa": 20.0, "hemicelulosa": 18.0, "lignina": 25.0 },
       "analisisElemental": { "carbono": 48.0, "hidrogeno": 6.5, "oxigeno": 40.0, "nitrogeno": 1.5, "azufre": 0.1 },
       "analisisInmediato": { "humedad": 11.0, "cenizas": 8.0, "materiaVolatil": 68.0, "carbonoFijo": 24.0 },
-      "poderCalorificoSuperior": 18.5
+      "poderCalorificoSuperior": 18.5,
+      "propiedadesFisicas": { "densidad_kg_m3": 200 }
     }
   },
   {
@@ -550,7 +595,8 @@ export const PYROLYSIS_MATERIALS: PyrolysisMaterial[] = [
       "composicion": { "celulosa": 30.0, "hemicelulosa": 15.0, "lignina": 5.0 },
       "analisisElemental": { "carbono": 48.0, "hidrogeno": 6.0, "oxigeno": 38.0, "nitrogeno": 2.5, "azufre": 0.5 },
       "analisisInmediato": { "humedad": 60.0, "cenizas": 15.0, "materiaVolatil": 70.0, "carbonoFijo": 15.0 },
-      "poderCalorificoSuperior": 18.0
+      "poderCalorificoSuperior": 18.0,
+      "propiedadesFisicas": { "densidad_kg_m3": 400 }
     }
   },
   {
@@ -562,7 +608,8 @@ export const PYROLYSIS_MATERIALS: PyrolysisMaterial[] = [
       "composicion": { "celulosa": 65.0, "hemicelulosa": 15.0, "lignina": 10.0 },
       "analisisElemental": { "carbono": 44.0, "hidrogeno": 6.0, "oxigeno": 48.0, "nitrogeno": 0.3, "azufre": 0.1 },
       "analisisInmediato": { "humedad": 8.0, "cenizas": 8.0, "materiaVolatil": 80.0, "carbonoFijo": 12.0 },
-      "poderCalorificoSuperior": 16.5
+      "poderCalorificoSuperior": 16.5,
+      "propiedadesFisicas": { "densidad_kg_m3": 80 }
     }
   },
   {
@@ -574,7 +621,8 @@ export const PYROLYSIS_MATERIALS: PyrolysisMaterial[] = [
       "composicion": { "celulosa": 40.0, "hemicelulosa": 25.0, "lignina": 25.0 },
       "analisisElemental": { "carbono": 49.0, "hidrogeno": 6.0, "oxigeno": 43.0, "nitrogeno": 0.5, "azufre": 0.1 },
       "analisisInmediato": { "humedad": 15.0, "cenizas": 4.0, "materiaVolatil": 78.0, "carbonoFijo": 18.0 },
-      "poderCalorificoSuperior": 18.0
+      "poderCalorificoSuperior": 18.0,
+      "propiedadesFisicas": { "densidad_kg_m3": 350 }
     }
   },
   {
@@ -586,7 +634,8 @@ export const PYROLYSIS_MATERIALS: PyrolysisMaterial[] = [
       "composicion": { "celulosa": 30.0, "hemicelulosa": 20.0, "lignina": 15.0 },
       "analisisElemental": { "carbono": 46.0, "hidrogeno": 5.5, "oxigeno": 40.0, "nitrogeno": 1.0, "azufre": 0.2 },
       "analisisInmediato": { "humedad": 40.0, "cenizas": 10.0, "materiaVolatil": 70.0, "carbonoFijo": 20.0 },
-      "poderCalorificoSuperior": 17.5
+      "poderCalorificoSuperior": 17.5,
+      "propiedadesFisicas": { "densidad_kg_m3": 250 }
     }
   },
   {
@@ -598,7 +647,8 @@ export const PYROLYSIS_MATERIALS: PyrolysisMaterial[] = [
       "composicion": { "celulosa": 85.0, "hemicelulosa": 5.0, "lignina": 1.0 },
       "analisisElemental": { "carbono": 45.0, "hidrogeno": 6.5, "oxigeno": 47.0, "nitrogeno": 1.0, "azufre": 0.1 },
       "analisisInmediato": { "humedad": 7.0, "cenizas": 3.0, "materiaVolatil": 85.0, "carbonoFijo": 12.0 },
-      "poderCalorificoSuperior": 17.0
+      "poderCalorificoSuperior": 17.0,
+      "propiedadesFisicas": { "densidad_kg_m3": 100 }
     }
   },
   {
@@ -610,7 +660,8 @@ export const PYROLYSIS_MATERIALS: PyrolysisMaterial[] = [
       "composicion": { "celulosa": 5.0, "hemicelulosa": 3.0, "lignina": 4.0 },
       "analisisElemental": { "carbono": 35.0, "hidrogeno": 5.0, "oxigeno": 25.0, "nitrogeno": 5.0, "azufre": 1.5 },
       "analisisInmediato": { "humedad": 10.0, "cenizas": 35.0, "materiaVolatil": 55.0, "carbonoFijo": 10.0 },
-      "poderCalorificoSuperior": 15.0
+      "poderCalorificoSuperior": 15.0,
+      "propiedadesFisicas": { "densidad_kg_m3": 700 }
     }
   },
   {
@@ -622,7 +673,8 @@ export const PYROLYSIS_MATERIALS: PyrolysisMaterial[] = [
       "composicion": { "celulosa": 0.0, "hemicelulosa": 0.0, "lignina": 0.0 },
       "analisisElemental": { "carbono": 85.0, "hidrogeno": 14.0, "oxigeno": 0.5, "nitrogeno": 0.2, "azufre": 0.1 },
       "analisisInmediato": { "humedad": 1.0, "cenizas": 5.0, "materiaVolatil": 94.0, "carbonoFijo": 1.0 },
-      "poderCalorificoSuperior": 42.0
+      "poderCalorificoSuperior": 42.0,
+      "propiedadesFisicas": { "densidad_kg_m3": 150 }
     }
   },
   {
@@ -634,7 +686,8 @@ export const PYROLYSIS_MATERIALS: PyrolysisMaterial[] = [
       "composicion": { "celulosa": 0.0, "hemicelulosa": 0.0, "lignina": 0.0 },
       "analisisElemental": { "carbono": 80.0, "hidrogeno": 7.0, "oxigeno": 2.0, "nitrogeno": 0.5, "azufre": 2.0 },
       "analisisInmediato": { "humedad": 1.5, "cenizas": 10.0, "materiaVolatil": 60.0, "carbonoFijo": 30.0 },
-      "poderCalorificoSuperior": 35.0
+      "poderCalorificoSuperior": 35.0,
+      "propiedadesFisicas": { "densidad_kg_m3": 400 }
     }
   },
   {
@@ -646,7 +699,8 @@ export const PYROLYSIS_MATERIALS: PyrolysisMaterial[] = [
       "composicion": { "celulosa": 15.0, "hemicelulosa": 10.0, "lignina": 5.0 },
       "analisisElemental": { "carbono": 55.0, "hidrogeno": 7.0, "oxigeno": 20.0, "nitrogeno": 1.0, "azufre": 0.5 },
       "analisisInmediato": { "humedad": 25.0, "cenizas": 20.0, "materiaVolatil": 65.0, "carbonoFijo": 15.0 },
-      "poderCalorificoSuperior": 22.0
+      "poderCalorificoSuperior": 22.0,
+      "propiedadesFisicas": { "densidad_kg_m3": 200 }
     }
   },
   {
@@ -658,7 +712,8 @@ export const PYROLYSIS_MATERIALS: PyrolysisMaterial[] = [
       "composicion": { "celulosa": 0.0, "hemicelulosa": 0.0, "lignina": 0.0 },
       "analisisElemental": { "carbono": 62.5, "hidrogeno": 4.2, "oxigeno": 33.3, "nitrogeno": 0.0, "azufre": 0.0 },
       "analisisInmediato": { "humedad": 1.0, "cenizas": 0.5, "materiaVolatil": 88.0, "carbonoFijo": 11.5 },
-      "poderCalorificoSuperior": 22.5
+      "poderCalorificoSuperior": 22.5,
+      "propiedadesFisicas": { "densidad_kg_m3": 350 }
     }
   },
   {
@@ -670,7 +725,8 @@ export const PYROLYSIS_MATERIALS: PyrolysisMaterial[] = [
       "composicion": { "celulosa": 0.0, "hemicelulosa": 0.0, "lignina": 0.0 },
       "analisisElemental": { "carbono": 85.6, "hidrogeno": 14.4, "oxigeno": 0.0, "nitrogeno": 0.0, "azufre": 0.0 },
       "analisisInmediato": { "humedad": 0.5, "cenizas": 1.0, "materiaVolatil": 98.0, "carbonoFijo": 1.5 },
-      "poderCalorificoSuperior": 46.0
+      "poderCalorificoSuperior": 46.0,
+      "propiedadesFisicas": { "densidad_kg_m3": 300 }
     }
   },
   {
@@ -682,7 +738,8 @@ export const PYROLYSIS_MATERIALS: PyrolysisMaterial[] = [
       "composicion": { "celulosa": 0.0, "hemicelulosa": 0.0, "lignina": 0.0 },
       "analisisElemental": { "carbono": 38.4, "hidrogeno": 4.8, "oxigeno": 0.0, "nitrogeno": 0.0, "azufre": 0.0 },
       "analisisInmediato": { "humedad": 1.0, "cenizas": 2.0, "materiaVolatil": 85.0, "carbonoFijo": 13.0 },
-      "poderCalorificoSuperior": 19.0
+      "poderCalorificoSuperior": 19.0,
+      "propiedadesFisicas": { "densidad_kg_m3": 400 }
     }
   },
   {
@@ -694,7 +751,8 @@ export const PYROLYSIS_MATERIALS: PyrolysisMaterial[] = [
       "composicion": { "celulosa": 50.0, "hemicelulosa": 10.0, "lignina": 5.0 },
       "analisisElemental": { "carbono": 50.0, "hidrogeno": 7.0, "oxigeno": 35.0, "nitrogeno": 0.1, "azufre": 0.1 },
       "analisisInmediato": { "humedad": 5.0, "cenizas": 10.0, "materiaVolatil": 80.0, "carbonoFijo": 10.0 },
-      "poderCalorificoSuperior": 25.0
+      "poderCalorificoSuperior": 25.0,
+      "propiedadesFisicas": { "densidad_kg_m3": 270 }
     }
   },
   {
@@ -706,7 +764,8 @@ export const PYROLYSIS_MATERIALS: PyrolysisMaterial[] = [
       "composicion": { "celulosa": 30.0, "hemicelulosa": 5.0, "lignina": 0.0 },
       "analisisElemental": { "carbono": 40.0, "hidrogeno": 6.0, "oxigeno": 30.0, "nitrogeno": 1.0, "azufre": 0.2 },
       "analisisInmediato": { "humedad": 50.0, "cenizas": 15.0, "materiaVolatil": 70.0, "carbonoFijo": 15.0 },
-      "poderCalorificoSuperior": 16.0
+      "poderCalorificoSuperior": 16.0,
+      "propiedadesFisicas": { "densidad_kg_m3": 150 }
     }
   },
   {
@@ -718,7 +777,8 @@ export const PYROLYSIS_MATERIALS: PyrolysisMaterial[] = [
       "composicion": { "celulosa": 0.0, "hemicelulosa": 0.0, "lignina": 0.0 },
       "analisisElemental": { "carbono": 55.0, "hidrogeno": 7.0, "oxigeno": 20.0, "nitrogeno": 10.0, "azufre": 1.0 },
       "analisisInmediato": { "humedad": 10.0, "cenizas": 8.0, "materiaVolatil": 65.0, "carbonoFijo": 27.0 },
-      "poderCalorificoSuperior": 21.0
+      "poderCalorificoSuperior": 21.0,
+      "propiedadesFisicas": { "densidad_kg_m3": 250 }
     }
   },
   {
@@ -730,7 +790,8 @@ export const PYROLYSIS_MATERIALS: PyrolysisMaterial[] = [
       "composicion": { "celulosa": 0.0, "hemicelulosa": 0.0, "lignina": 0.0 },
       "analisisElemental": { "carbono": 75.0, "hidrogeno": 8.0, "oxigeno": 8.0, "nitrogeno": 4.0, "azufre": 0.1 },
       "analisisInmediato": { "humedad": 1.0, "cenizas": 10.0, "materiaVolatil": 85.0, "carbonoFijo": 5.0 },
-      "poderCalorificoSuperior": 32.0
+      "poderCalorificoSuperior": 32.0,
+      "propiedadesFisicas": { "densidad_kg_m3": 300 }
     }
   },
   {
@@ -742,7 +803,8 @@ export const PYROLYSIS_MATERIALS: PyrolysisMaterial[] = [
       "composicion": { "celulosa": 15.0, "hemicelulosa": 30.0, "lignina": 25.0 },
       "analisisElemental": { "carbono": 52.0, "hidrogeno": 7.0, "oxigeno": 35.0, "nitrogeno": 2.5, "azufre": 0.2 },
       "analisisInmediato": { "humedad": 50.0, "cenizas": 2.0, "materiaVolatil": 85.0, "carbonoFijo": 13.0 },
-      "poderCalorificoSuperior": 23.0
+      "poderCalorificoSuperior": 23.0,
+      "propiedadesFisicas": { "densidad_kg_m3": 500 }
     }
   },
   {
@@ -754,7 +816,8 @@ export const PYROLYSIS_MATERIALS: PyrolysisMaterial[] = [
       "composicion": { "celulosa": 10.0, "hemicelulosa": 5.0, "lignina": 2.0 },
       "analisisElemental": { "carbono": 25.0, "hidrogeno": 3.0, "oxigeno": 20.0, "nitrogeno": 1.0, "azufre": 0.3 },
       "analisisInmediato": { "humedad": 30.0, "cenizas": 50.0, "materiaVolatil": 40.0, "carbonoFijo": 10.0 },
-      "poderCalorificoSuperior": 8.0
+      "poderCalorificoSuperior": 8.0,
+      "propiedadesFisicas": { "densidad_kg_m3": 600 }
     }
   },
   {
@@ -766,7 +829,8 @@ export const PYROLYSIS_MATERIALS: PyrolysisMaterial[] = [
       "composicion": { "celulosa": 0.0, "hemicelulosa": 0.0, "lignina": 0.0 },
       "analisisElemental": { "carbono": 91.5, "hidrogeno": 8.5, "oxigeno": 0.0, "nitrogeno": 0.0, "azufre": 0.0 },
       "analisisInmediato": { "humedad": 1.5, "cenizas": 0.5, "materiaVolatil": 98.0, "carbonoFijo": 1.5 },
-      "poderCalorificoSuperior": 40.0
+      "poderCalorificoSuperior": 40.0,
+      "propiedadesFisicas": { "densidad_kg_m3": 20 }
     }
   },
   {
@@ -778,7 +842,8 @@ export const PYROLYSIS_MATERIALS: PyrolysisMaterial[] = [
       "composicion": { "celulosa": 0.0, "hemicelulosa": 0.0, "lignina": 0.0 },
       "analisisElemental": { "carbono": 65.0, "hidrogeno": 6.0, "oxigeno": 20.0, "nitrogeno": 8.0, "azufre": 0.1 },
       "analisisInmediato": { "humedad": 4.0, "cenizas": 4.0, "materiaVolatil": 80.0, "carbonoFijo": 16.0 },
-      "poderCalorificoSuperior": 28.0
+      "poderCalorificoSuperior": 28.0,
+      "propiedadesFisicas": { "densidad_kg_m3": 150 }
     }
   },
   {
@@ -790,7 +855,8 @@ export const PYROLYSIS_MATERIALS: PyrolysisMaterial[] = [
       "composicion": { "celulosa": 0.0, "hemicelulosa": 0.0, "lignina": 0.0 },
       "analisisElemental": { "carbono": 77.0, "hidrogeno": 12.0, "oxigeno": 11.0, "nitrogeno": 0.0, "azufre": 0.0 },
       "analisisInmediato": { "humedad": 1.0, "cenizas": 0.5, "materiaVolatil": 98.0, "carbonoFijo": 1.5 },
-      "poderCalorificoSuperior": 39.5
+      "poderCalorificoSuperior": 39.5,
+      "propiedadesFisicas": { "densidad_kg_m3": 900 }
     }
   },
   {
@@ -802,7 +868,8 @@ export const PYROLYSIS_MATERIALS: PyrolysisMaterial[] = [
       "composicion": { "celulosa": 5.0, "hemicelulosa": 5.0, "lignina": 10.0 },
       "analisisElemental": { "carbono": 15.0, "hidrogeno": 2.0, "oxigeno": 12.0, "nitrogeno": 0.5, "azufre": 0.2 },
       "analisisInmediato": { "humedad": 20.0, "cenizas": 70.0, "materiaVolatil": 25.0, "carbonoFijo": 5.0 },
-      "poderCalorificoSuperior": 6.0
+      "poderCalorificoSuperior": 6.0,
+      "propiedadesFisicas": { "densidad_kg_m3": 800 }
     }
   },
   {
@@ -814,7 +881,8 @@ export const PYROLYSIS_MATERIALS: PyrolysisMaterial[] = [
       "composicion": { "celulosa": 0.0, "hemicelulosa": 0.0, "lignina": 0.0 },
       "analisisElemental": { "carbono": 63.0, "hidrogeno": 7.0, "oxigeno": 22.0, "nitrogeno": 7.0, "azufre": 0.1 },
       "analisisInmediato": { "humedad": 3.0, "cenizas": 2.0, "materiaVolatil": 90.0, "carbonoFijo": 8.0 },
-      "poderCalorificoSuperior": 26.0
+      "poderCalorificoSuperior": 26.0,
+      "propiedadesFisicas": { "densidad_kg_m3": 30 }
     }
   },
   {
@@ -826,7 +894,8 @@ export const PYROLYSIS_MATERIALS: PyrolysisMaterial[] = [
       "composicion": { "celulosa": 0.0, "hemicelulosa": 0.0, "lignina": 0.0 },
       "analisisElemental": { "carbono": 78.0, "hidrogeno": 8.0, "oxigeno": 3.0, "nitrogeno": 0.5, "azufre": 1.5 },
       "analisisInmediato": { "humedad": 2.0, "cenizas": 12.0, "materiaVolatil": 65.0, "carbonoFijo": 23.0 },
-      "poderCalorificoSuperior": 31.0
+      "poderCalorificoSuperior": 31.0,
+      "propiedadesFisicas": { "densidad_kg_m3": 350 }
     }
   },
   {
@@ -838,7 +907,8 @@ export const PYROLYSIS_MATERIALS: PyrolysisMaterial[] = [
       "composicion": { "celulosa": 38.0, "hemicelulosa": 22.0, "lignina": 24.0 },
       "analisisElemental": { "carbono": 48.0, "hidrogeno": 5.8, "oxigeno": 40.0, "nitrogeno": 0.3, "azufre": 0.1 },
       "analisisInmediato": { "humedad": 12.0, "cenizas": 8.0, "materiaVolatil": 75.0, "carbonoFijo": 17.0 },
-      "poderCalorificoSuperior": 17.0
+      "poderCalorificoSuperior": 17.0,
+      "propiedadesFisicas": { "densidad_kg_m3": 300 }
     }
   },
   {
@@ -850,7 +920,8 @@ export const PYROLYSIS_MATERIALS: PyrolysisMaterial[] = [
       "composicion": { "celulosa": 5.0, "hemicelulosa": 0.0, "lignina": 0.0 },
       "analisisElemental": { "carbono": 70.0, "hidrogeno": 9.0, "oxigeno": 12.0, "nitrogeno": 4.0, "azufre": 0.2 },
       "analisisInmediato": { "humedad": 5.0, "cenizas": 15.0, "materiaVolatil": 70.0, "carbonoFijo": 15.0 },
-      "poderCalorificoSuperior": 30.0
+      "poderCalorificoSuperior": 30.0,
+      "propiedadesFisicas": { "densidad_kg_m3": 200 }
     }
   },
   {
@@ -862,7 +933,8 @@ export const PYROLYSIS_MATERIALS: PyrolysisMaterial[] = [
       "composicion": { "celulosa": 25.0, "hemicelulosa": 15.0, "lignina": 8.0 },
       "analisisElemental": { "carbono": 45.0, "hidrogeno": 6.0, "oxigeno": 40.0, "nitrogeno": 2.0, "azufre": 0.3 },
       "analisisInmediato": { "humedad": 85.0, "cenizas": 8.0, "materiaVolatil": 80.0, "carbonoFijo": 12.0 },
-      "poderCalorificoSuperior": 18.5
+      "poderCalorificoSuperior": 18.5,
+      "propiedadesFisicas": { "densidad_kg_m3": 300 }
     }
   },
   {

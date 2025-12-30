@@ -3,7 +3,8 @@ import type { PyrolysisMaterial, Catalyst, SimulationFormData } from '../../type
 import { PYROLYSIS_MATERIALS, SIMULATION_ENGINE } from '../../data/pyrolysisMaterials';
 import { CatalyticOracle } from './CatalyticOracle';
 
-const Slider: React.FC<{ name: 'celulosa' | 'hemicelulosa' | 'lignina', label: string, value: number, color: string, onChange: (name: 'celulosa' | 'hemicelulosa' | 'lignina', value: number) => void }> = ({ name, label, value, color, onChange }) => (
+// FIX: Corrected typo in name prop type from hemicelulosa to hemicellulosa.
+const Slider: React.FC<{ name: 'celulosa' | 'hemicellulosa' | 'lignina', label: string, value: number, color: string, onChange: (name: 'celulosa' | 'hemicellulosa' | 'lignina', value: number) => void }> = ({ name, label, value, color, onChange }) => (
     <div>
         <div className="flex justify-between items-center mb-1">
             <label htmlFor={`slider-${name}`} className="text-sm font-medium text-gray-300">{label}</label>
@@ -101,12 +102,14 @@ export const SimulationForm: React.FC<SimulationFormProps> = ({ formData, onForm
     }, [simulationMode, mixture, allMaterialsForAdvanced]);
 
 
-    const handleCompositionSliderChange = (name: 'celulosa' | 'hemicelulosa' | 'lignina', value: number) => {
+    // FIX: Corrected typo in name parameter type from hemicelulosa to hemicellulosa.
+    const handleCompositionSliderChange = (name: 'celulosa' | 'hemicellulosa' | 'lignina', value: number) => {
         let newComposition = { ...composition };
         const oldValue = newComposition[name];
         if (value === oldValue) return;
         
-        const otherSliders = (['celulosa', 'hemicelulosa', 'lignina'] as const).filter(k => k !== name);
+        // FIX: Corrected typo in otherSliders array from hemicelulosa to hemicellulosa.
+        const otherSliders = (['celulosa', 'hemicellulosa', 'lignina'] as const).filter(k => k !== name);
         const oldOtherSum = otherSliders.reduce((sum, k) => sum + newComposition[k], 0);
 
         if (oldOtherSum > 0) {
@@ -118,13 +121,13 @@ export const SimulationForm: React.FC<SimulationFormProps> = ({ formData, onForm
         }
         
         newComposition[name] = value;
-        const finalSum = newComposition.celulosa + newComposition.hemicelulosa + newComposition.lignina;
+        const finalSum = newComposition.celulosa + newComposition.hemicellulosa + newComposition.lignina;
         const diff = 100 - finalSum;
         if (diff !== 0) { newComposition[name] += diff; }
 
         onFormChange('composition', {
             celulosa: Math.max(0, Math.min(100, newComposition.celulosa)),
-            hemicelulosa: Math.max(0, Math.min(100, newComposition.hemicelulosa)),
+            hemicellulosa: Math.max(0, Math.min(100, newComposition.hemicellulosa)),
             lignina: Math.max(0, Math.min(100, newComposition.lignina)),
         });
     };
@@ -139,25 +142,27 @@ export const SimulationForm: React.FC<SimulationFormProps> = ({ formData, onForm
         };
 
         const material = solidMaterials.find(m => m.id === materialId);
-        if (material && material.propiedades.composicion) {
-            const { celulosa = 0, hemicelulosa = 0, lignina = 0 } = material.propiedades.composicion;
+        // FIX: Add a more robust check for the existence of `propiedades` and `composicion` before accessing them.
+        if (material && 'propiedades' in material && material.propiedades && 'composicion' in material.propiedades && material.propiedades.composicion) {
+            // FIX: Corrected typo from hemicelulosa to hemicellulosa.
+            const { celulosa = 0, hemicellulosa = 0, lignina = 0 } = material.propiedades.composicion;
             
-            const total = celulosa + hemicelulosa + lignina;
+            const total = celulosa + hemicellulosa + lignina;
             let finalComposition;
             if (total > 0 && total !== 100) {
                 const scale = 100 / total;
                 finalComposition = {
                     celulosa: celulosa * scale,
-                    hemicelulosa: hemicelulosa * scale,
+                    hemicellulosa: hemicellulosa * scale,
                     lignina: lignina * scale,
                 };
             } else if (total === 100) {
-                finalComposition = { celulosa, hemicelulosa, lignina };
+                finalComposition = { celulosa, hemicellulosa, lignina };
             } else {
-                finalComposition = { celulosa: 34, hemicelulosa: 33, lignina: 33 };
+                finalComposition = { celulosa: 34, hemicellulosa: 33, lignina: 33 };
             }
             
-             const finalSum = finalComposition.celulosa + finalComposition.hemicelulosa + finalComposition.lignina;
+             const finalSum = finalComposition.celulosa + finalComposition.hemicellulosa + finalComposition.lignina;
              const diff = 100 - finalSum;
              if (diff !== 0) {
                  finalComposition.celulosa += diff;
@@ -204,7 +209,8 @@ export const SimulationForm: React.FC<SimulationFormProps> = ({ formData, onForm
                     </div>
                     <div className="space-y-4 pt-4 border-t border-slate-700">
                         <Slider name="celulosa" label="Celulosa" value={composition.celulosa} color="accent-green-500" onChange={handleCompositionSliderChange} />
-                        <Slider name="hemicelulosa" label="Hemicelulosa" value={composition.hemicelulosa} color="accent-yellow-500" onChange={handleCompositionSliderChange} />
+                        {/* FIX: Corrected typo in name prop from hemicelulosa to hemicellulosa. */}
+                        <Slider name="hemicellulosa" label="Hemicelulosa" value={composition.hemicellulosa} color="accent-yellow-500" onChange={handleCompositionSliderChange} />
                         <Slider name="lignina" label="Lignina" value={composition.lignina} color="accent-orange-700" onChange={handleCompositionSliderChange} />
                     </div>
                 </>

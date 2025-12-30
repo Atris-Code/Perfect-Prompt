@@ -1,8 +1,86 @@
-
-
 import { PYROLYSIS_MATERIALS, SIMULATION_ENGINE } from '../data/pyrolysisMaterials';
 // FIX: Corrected import path for types to ensure consistent module resolution.
 import type { PyrolysisMaterial, BiomassPyrolysisMode, Catalyst, HeatSource, SimulationKPIs, SolidMaterial, SimulationFormData, SimulationResult, PlantModel } from '../types';
+
+const getTriangularSample = (min: number, mode: number, max: number): number => {
+    if (max === min) return min;
+    const F = (mode - min) / (max - min);
+    const rand = Math.random();
+    if (rand < F) {
+        return min + Math.sqrt(rand * (max - min) * (mode - min));
+    } else {
+        return max - Math.sqrt((1 - rand) * (max - min) * (max - mode));
+    }
+};
+
+export const runMonteCarloSimulation = (formData: SimulationFormData): SimulationResult => {
+    // 1. Run a single simulation with the base values to get a mean result.
+    const baseResult = runSimulation(formData);
+
+    if (!baseResult.simulatedYield) {
+        return baseResult;
+    }
+
+    // 2. Determine uncertainty from form data
+    const tempImpact = (formData.temperaturaRange || 0) / 500; // 500C range variation = 100% impact on uncertainty factor
+    const timeImpact = formData.tiempoResidenciaRange ? Math.log10(Math.max(1, formData.tiempoResidenciaRange)) / 4 : 0; // 10000s range variation = 100% impact
+    const compImpact = (formData.compositionUncertainty || 0) / 100;
+    const totalUncertainty = Math.min(0.5, 0.05 + tempImpact + timeImpact + compImpact); // Base 5% uncertainty, capped at 50%
+
+    const { liquido, solido, gas } = baseResult.simulatedYield;
+    const N = 500; // Number of simulations
+
+    const distributions = { liquido: [] as number[], solido: [] as number[], gas: [] as number[] };
+    
+    for (let i = 0; i < N; i++) {
+        const liqSample = getTriangularSample(liquido * (1 - totalUncertainty), liquido, liquido * (1 + totalUncertainty));
+        const solSample = getTriangularSample(solido * (1 - totalUncertainty), solido, solido * (1 + totalUncertainty));
+        const gasSample = 100 - liqSample - solSample;
+
+        distributions.liquido.push(Math.max(0, liqSample));
+        distributions.solido.push(Math.max(0, solSample));
+        distributions.gas.push(Math.max(0, gasSample));
+    }
+
+    const calculateStats = (arr: number[]) => {
+        const sum = arr.reduce((a, b) => a + b, 0);
+        const mean = sum / arr.length;
+        const stdDev = Math.sqrt(arr.map(x => Math.pow(x - mean, 2)).reduce((a, b) => a + b, 0) / arr.length);
+        return { mean, min: Math.min(...arr), max: Math.max(...arr), stdDev };
+    };
+
+    const liquidStats = calculateStats(distributions.liquido);
+    const solidStats = calculateStats(distributions.solido);
+    const gasStats = calculateStats(distributions.gas);
+
+    const yieldDistribution = {
+        liquido: liquidStats,
+        solido: solidStats,
+        gas: gasStats,
+    };
+    
+    const sensitivityFactors = {
+        temp: tempImpact > 0.01 ? 10 * tempImpact : 0,
+        comp: compImpact > 0.01 ? 8 * compImpact : 0,
+        time: timeImpact > 0.01 ? 4 * timeImpact : 0,
+    };
+
+    // 3. Fabricate a sensitivity analysis (Tornado Diagram placeholder).
+    const sensitivityAnalysis = [
+        { variable: 'Temperatura', impact: sensitivityFactors.temp, description: 'La temperatura del reactor es un factor crítico que afecta la velocidad de las reacciones de craqueo.' },
+        { variable: 'Composición de Materia Prima', impact: sensitivityFactors.comp, description: 'La composición lignocelulósica de la biomasa afecta directamente los rendimientos de los productos.' },
+        { variable: 'Tiempo de Residencia', impact: sensitivityFactors.time, description: 'Un mayor tiempo de residencia favorece reacciones secundarias, alterando la proporción de productos.' },
+    ].filter(item => item.impact > 0).sort((a, b) => b.impact - a.impact);
+
+
+    return {
+        ...baseResult,
+        yieldDistribution,
+        yieldRawDistribution: distributions,
+        sensitivityAnalysis,
+    };
+};
+
 
 export const runSimulation = (formData: SimulationFormData): SimulationResult => {
     const {
@@ -23,20 +101,18 @@ export const runSimulation = (formData: SimulationFormData): SimulationResult =>
     const allMaterialsForAdvanced = PYROLYSIS_MATERIALS.filter(m => m.id !== -1);
 
     const effectiveMaterial = ((): PyrolysisMaterial | undefined => {
-        if (simulationMode === 'simple') {
-            const total = composition.celulosa + composition.hemicelulosa + composition.lignina;
+        if (simulationMode === 'simple' || simulationMode === 'extremo') {
+            const total = composition.celulosa + composition.hemicellulosa + composition.lignina;
             if (total === 0) return solidMaterials[0];
-            // FIX: Added missing 'fase' property to align with PyrolysisMaterial type
             const theoreticalMaterial: PyrolysisMaterial = {
                 id: -1,
-                // FIX: Added missing 'fase' property.
                 fase: 'Sólido',
                 nombre: 'Biomasa Teórica',
                 categoria: 'Teórica',
                 propiedades: {
                     composicion: { 
                         celulosa: composition.celulosa, 
-                        hemicelulosa: composition.hemicelulosa, 
+                        hemicellulosa: composition.hemicellulosa, 
                         lignina: composition.lignina 
                     },
                     analisisElemental: { carbono: 48, hidrogeno: 6, oxigeno: 45, nitrogeno: 0.5, azufre: 0.1 },
@@ -45,7 +121,7 @@ export const runSimulation = (formData: SimulationFormData): SimulationResult =>
                 }
             };
             return theoreticalMaterial;
-        } else { // 'avanzado' or 'extremo'
+        } else { // 'avanzado'
             if (mixture.length === 0) return allMaterialsForAdvanced[0];
             
             const firstMaterialId = mixture[0]?.materialId;
@@ -68,7 +144,6 @@ export const runSimulation = (formData: SimulationFormData): SimulationResult =>
                 propiedades: firstMaterial?.propiedades as any
             };
 
-            // FIX: Added required 'fase' property
             if (mixturePhase === 'Líquido') {
                 return { ...baseProps, fase: 'Líquido' } as PyrolysisMaterial;
             }
@@ -100,16 +175,24 @@ export const runSimulation = (formData: SimulationFormData): SimulationResult =>
         };
     }
 
-    // FIX: Explicitly type `baseYield` to allow for the optional `ceras` property.
     let baseYield: { liquido: number; solido: number; gas: number; ceras?: number; } = { ...mode.rendimiento_base_porcentaje };
     let insights: string[] = [];
+    let aiAnalysisText = heatSource.efecto_simulado.analisis_ia;
     const catalyst = SIMULATION_ENGINE.catalysts.find(c => c.id === selectedCatalystId);
     
     // Modifier logic for custom conditions from sliders/optimizer
     const idealTempStr = mode.condiciones_tipicas.temperatura_C;
-    const idealTemp = idealTempStr.includes('-') ? (Number(idealTempStr.split('-')[0]) + Number(idealTempStr.split('-')[1])) / 2 : Number(idealTempStr.replace('>', ''));
-    const tempDelta = temperatura - idealTemp;
+    let idealTemp = idealTempStr.includes('-') ? (Number(idealTempStr.split('-')[0]) + Number(idealTempStr.split('-')[1])) / 2 : Number(idealTempStr.replace('>', ''));
 
+    if (catalyst) {
+        const condMod = catalyst.efecto_simulado.modificador_condiciones;
+        if (condMod.includes("Reduce ligeramente la temperatura")) idealTemp -= 25;
+        else if (condMod.includes("(500-600°C)")) idealTemp = 550;
+        else if (condMod.includes("> 600°C")) idealTemp = 650;
+        else if (condMod.includes("600-750°C")) idealTemp = 675;
+    }
+    
+    const tempDelta = temperatura - idealTemp;
     baseYield.gas += tempDelta * 0.05;
     baseYield.liquido -= tempDelta * 0.03;
     baseYield.solido -= tempDelta * 0.02;
@@ -126,8 +209,17 @@ export const runSimulation = (formData: SimulationFormData): SimulationResult =>
         baseYield.gas += oxigeno * 1.5;
         baseYield.liquido -= oxigeno * 1.0;
         baseYield.solido -= oxigeno * 0.5;
-        insights.push(`Con ${oxigeno.toFixed(1)}% de O₂, el proceso se desplaza hacia la gasificación, aumentando drásticamente la producción de gas.`);
     }
+    
+    // Critical AI Analysis
+    if (oxigeno > 5) {
+        insights.push(`🔥 **¡CRÍTICO!** Operar con una concentración de oxígeno superior al 5% crea un riesgo significativo de combustión incontrolada y explosión.`);
+        aiAnalysisText += ` Se ha detectado un nivel de oxígeno peligrosamente alto.`;
+    }
+    if (temperatura > 650) {
+        insights.push(`💬 **Análisis Cinético:** A ${temperatura}°C, estás favoreciendo el craqueo térmico secundario, lo que maximiza la producción de gas. Si tu objetivo es el bio-aceite, considera reducir la temperatura.`);
+    }
+
 
     if (catalyst) {
         const { modificador_rendimiento, mejora_calidad_liquido, mejora_calidad_gas } = catalyst.efecto_simulado;
@@ -146,17 +238,12 @@ export const runSimulation = (formData: SimulationFormData): SimulationResult =>
         baseYield.liquido *= scale;
         baseYield.solido *= scale;
         baseYield.gas *= scale;
-        if (baseYield.ceras) {
-            baseYield.ceras *= scale;
-        }
+        if (baseYield.ceras) baseYield.ceras *= scale;
     }
     
-    // Final check to ensure it sums to 100
     const finalTotal = baseYield.liquido + baseYield.solido + baseYield.gas + (baseYield.ceras || 0);
     const diff = 100 - finalTotal;
-    if (Math.abs(diff) > 0.01) { // Tolerate small floating point inaccuracies
-        baseYield.gas += diff; // Adjust gas yield as it's often the balance
-    }
+    if (Math.abs(diff) > 0.01) baseYield.gas += diff;
     
     baseYield.liquido = Math.max(0, baseYield.liquido);
     baseYield.solido = Math.max(0, baseYield.solido);
@@ -174,7 +261,7 @@ export const runSimulation = (formData: SimulationFormData): SimulationResult =>
         simulatedYield: baseYield,
         kpis: heatSource.efecto_simulado.kpis,
         qualityInsights: insights,
-        aiAnalysis: heatSource.efecto_simulado.analisis_ia,
+        aiAnalysis: aiAnalysisText,
         carbonBalance: heatSource.efecto_simulado.carbon_balance || null,
         gasComposition: { H2: 20, CO: 45, CO2: 15, CH4: 10, C2_C4: 5, N2: 5 }, // Dummy data
         simulationInsights: {

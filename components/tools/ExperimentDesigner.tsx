@@ -266,7 +266,10 @@ export const ExperimentDesigner: React.FC<ExperimentDesignerProps> = ({ onUseAna
     const handleUseForPrompt = useCallback(() => {
         if (!experimentResult) return;
         const material = PYROLYSIS_MATERIALS.find(m => m.id === experimentResult.config.materialId);
-        const objective = `Crear un informe a partir del análisis de la campaña de optimización de ${material ? material.nombre : 'un material'}`;
+        const materialName = material ? material.nombre : 'la materia prima seleccionada';
+        
+        const objective = `Redactar un informe técnico exhaustivo basado en los resultados de la campaña de optimización "Hyperion" para ${materialName}. El informe debe detallar las condiciones operativas óptimas identificadas para maximizar ${OPTIMIZATION_GOALS.find(g => g.id === experimentResult.config.objective)?.label || 'el objetivo seleccionado'} y analizar las implicaciones de estos hallazgos, integrando el análisis profundo proporcionado por el Concilio.`;
+        
         onUseAnalysisForPrompt(objective, experimentResult.concilioAnalysis);
     }, [experimentResult, onUseAnalysisForPrompt]);
 

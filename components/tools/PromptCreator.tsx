@@ -57,7 +57,8 @@ const initialFormData: FormData = {
     [ContentType.Imagen]: { style: [], aspectRatio: '1:1', numberOfImages: 2, variety: 50, stylization: 50, rarity: 50 },
     // FIX: The `videoCreationMode` property was incorrectly set to 'manual'. It has been corrected to 'text-to-video' to align with the allowed types.
     [ContentType.Video]: { videoCreationMode: 'text-to-video', artisticStyle: [] },
-    [ContentType.Audio]: {},
+    // FIX: Added readingSpeed to the initial form data for the Audio content type to align with the type definition.
+    [ContentType.Audio]: { readingSpeed: 50 },
     [ContentType.Codigo]: { scriptType: 'vrc' },
   },
 };

@@ -1,22 +1,30 @@
-import React, { useState, useEffect, useCallback, useMemo } from 'react';
-// FIX: Removed AIStudio from type imports as it is a global type and does not need to be explicitly imported.
+
+import React, { useState, useMemo, useEffect, useCallback, useRef } from 'react';
 import type { View, VulcanoState, Task, UtilityDutyType, VulcanoMachineStatus } from '../../types';
 import { ContentType } from '../../types';
-import { FLEET_VEHICLES } from '../../data/fleetVehicles';
-import { FormSelect, FormInput, FormTextarea } from '../form/FormControls';
 import { useTranslations } from '../../contexts/LanguageContext';
-import { useUtilityCosts } from '../../contexts/UtilityCostContext';
+import { Accordion } from '../form/Accordion';
 import { generateCinematicImage, generateCinematicVideo } from '../../services/geminiService';
+
+
+interface VulcanoProps {
+    vulcanoState: VulcanoState;
+    setVulcanoState: React.Dispatch<React.SetStateAction<VulcanoState>>;
+    setView: (view: View) => void;
+    onNavigateToUtilities: (context: { demands: { [key in UtilityDutyType]?: number }; tab: UtilityDutyType }) => void;
+    onSaveTask: (task: Task) => void;
+}
 
 // --- Reusable UI Components (for consistency) ---
 const Panel: React.FC<React.PropsWithChildren<{ title: string; className?: string }>> = ({ title, children, className }) => (
-    <div className={`p-4 rounded-lg bg-slate-800 border border-slate-700 h-full flex flex-col ${className}`}>
+    <div className={`p-4 rounded-lg bg-slate-800 border border-slate-700 h-full flex flex-col text-slate-300 ${className}`}>
         <h4 className="text-lg font-bold mb-3 text-cyan-400">{title}</h4>
         <div className="space-y-3 flex-grow flex flex-col justify-around">
             {children}
         </div>
     </div>
 );
+
 
 const KpiGauge: React.FC<{ value: number; label: string; }> = ({ value, label }) => {
     const percentage = Math.min(100, Math.max(0, value));
@@ -59,127 +67,87 @@ const ProgressBar: React.FC<{ value: number; max: number; label?: string; unit?:
     </div>
 );
 
+const StatusBadge: React.FC<{ status: VulcanoMachineStatus }> = ({ status }) => {
+    const { t } = useTranslations();
+    const statusInfo: Record<VulcanoMachineStatus, { bg: string; key: string }> = {
+        'OK': { bg: 'bg-green-500', key: 'ok' },
+        'ATASCO': { bg: 'bg-yellow-500', key: 'jam' },
+        'APAGADO': { bg: 'bg-red-500', key: 'off' },
+    };
+    const key = `vulcano.status.${statusInfo[status]?.key || 'off'}`;
+    const info = statusInfo[status] || statusInfo['APAGADO'];
+    return <span className={`px-2 py-1 text-xs font-bold rounded-full text-white ${info.bg}`}>{t(key)}</span>;
+};
 
-// Component Props
-interface VulcanoProps {
-    vulcanoState: VulcanoState;
-    setVulcanoState: React.Dispatch<React.SetStateAction<VulcanoState>>;
-    setView: (view: View) => void;
-    onNavigateToUtilities: (context: { demands: { [key in UtilityDutyType]?: number }; tab: UtilityDutyType }) => void;
-    onSaveTask: (task: Task) => void;
-}
-
-const VULCANO_ELECTRICAL_DEMAND_KW = 648;
 
 const getIcon = (machineKey: keyof VulcanoState['machines'], isJammed: boolean) => {
     const iconClasses = `h-10 w-10 transition-colors ${isJammed ? 'text-red-400' : 'text-slate-400'}`;
-    switch(machineKey) {
-        case 'debeader': return <svg xmlns="http://www.w3.org/2000/svg" className={iconClasses} fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}><path strokeLinecap="round" strokeLinejoin="round" d="M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-6 0a1 1 0 001-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 001 1m-6 0h6" /></svg>;
-        case 'primaryShredder': return <svg xmlns="http://www.w3.org/2000/svg" className={iconClasses} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"><path d="m5.6 10.6 12.8 0"/><path d="m5.6 13.4 12.8 0"/><path d="M12 2v2"/><path d="M12 20v2"/><path d="M5 2h14"/><path d="M5 22h14"/><path d="M9 2v20"/><path d="M15 2v20"/></svg>;
-        case 'rasperMill': return <svg xmlns="http://www.w3.org/2000/svg" className={iconClasses} fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" d="M3.75 6A2.25 2.25 0 016 3.75h2.25A2.25 2.25 0 0110.5 6v2.25a2.25 2.25 0 01-2.25 2.25H6a2.25 2.25 0 01-2.25-2.25V6zM3.75 15.75A2.25 2.25 0 016 13.5h2.25a2.25 2.25 0 012.25 2.25V18a2.25 2.25 0 01-2.25 2.25H6A2.25 2.25 0 013.75 18v-2.25zM13.5 6a2.25 2.25 0 012.25-2.25H18A2.25 2.25 0 0120.25 6v2.25A2.25 2.25 0 0118 10.5h-2.25a2.25 2.25 0 01-2.25-2.25V6zM13.5 15.75a2.25 2.25 0 012.25-2.25H18a2.25 2.25 0 012.25 2.25V18A2.25 2.25 0 0118 20.25h-2.25A2.25 2.25 0 0113.5 18v-2.25z" /></svg>;
-        case 'granulators': return <svg xmlns="http://www.w3.org/2000/svg" className={iconClasses} fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" d="M6.75 12a.75.75 0 11-1.5 0 .75.75 0 011.5 0zM12.75 12a.75.75 0 11-1.5 0 .75.75 0 011.5 0zM18.75 12a.75.75 0 11-1.5 0 .75.75 0 011.5 0z" /></svg>;
-        case 'magneticSeparators': return <svg xmlns="http://www.w3.org/2000/svg" className={iconClasses} fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" d="M15.042 21.672L13.684 16.6m0 0l-2.51 2.225.569-9.47 5.227 7.917-3.286-.672zm-7.518-.267A8.25 8.25 0 1120.25 10.5M8.288 14.212A5.25 5.25 0 1117.25 10.5" /></svg>;
-        case 'textileClassifiers': return <svg xmlns="http://www.w3.org/2000/svg" className={iconClasses} fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" d="M3.75 6.75h16.5M3.75 12h16.5m-16.5 5.25H12" /></svg>;
-        default: return null;
-    }
+    // A generic icon is used as a placeholder for simplicity.
+    return <svg xmlns="http://www.w3.org/2000/svg" className={iconClasses} fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}><path strokeLinecap="round" strokeLinejoin="round" d="M19.428 15.428a2 2 0 00-1.022-.547l-2.387-.477a6 6 0 00-3.86.517l-.318.158a6 6 0 01-3.86.517L6.05 15.21a2 2 0 00-1.806.547a2 2 0 00-.547 1.806l.477 2.387a6 6 0 00.517 3.86l.158.318a6 6 0 00.517 3.86l2.387.477a2 2 0 001.806-.547a2 2 0 00.547-1.806l-.477-2.387a6 6 0 00-.517-3.86l-.158-.318a6 6 0 00.517 3.86l2.387.477a2 2 0 001.806-.547a2 2 0 00.547-1.806l-.477-2.387a6 6 0 00-.517-3.86l-.158-.318a6 6 0 01-.517-3.86l.477-2.387a2 2 0 01.547-1.806z" /></svg>;
 };
 
-const ProcessLine: React.FC<{ vulcanoState: VulcanoState }> = ({ vulcanoState }) => {
+export const Vulcano: React.FC<VulcanoProps> = ({
+    vulcanoState,
+    setVulcanoState,
+    setView,
+    onNavigateToUtilities,
+    onSaveTask,
+}) => {
     const { t } = useTranslations();
-    const { machines, processingRateTiresPerHour, outputPurity, isRunning } = vulcanoState;
+    const [activeView, setActiveView] = useState<'dashboard' | 'cinematic'>('dashboard');
 
-    const StatusBadge: React.FC<{ status: 'OK' | 'ATASCO' | 'APAGADO' }> = ({ status }) => {
-        const styles = {
-            OK: 'bg-green-500/20 text-green-300 ring-1 ring-inset ring-green-500/30',
-            ATASCO: 'bg-red-500/20 text-red-300 ring-1 ring-inset ring-red-500/30 animate-pulse',
-            APAGADO: 'bg-slate-500/20 text-slate-300 ring-1 ring-inset ring-slate-500/30',
-        };
-        const icons = {
-            OK: <svg xmlns="http://www.w3.org/2000/svg" className="h-3 w-3" viewBox="0 0 20 20" fill="currentColor"><path fillRule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clipRule="evenodd" /></svg>,
-            ATASCO: <svg xmlns="http://www.w3.org/2000/svg" className="h-3 w-3" viewBox="0 0 20 20" fill="currentColor"><path fillRule="evenodd" d="M8.257 3.099c.765-1.36 2.722-1.36 3.486 0l5.58 9.92c.75 1.334-.21 3.03-1.742 3.03H4.42c-1.532 0-2.492-1.696-1.742-3.03l5.58-9.92zM10 13a1 1 0 100-2 1 1 0 000 2zm-1-4a1 1 0 011-1h.01a1 1 0 110 2H10a1 1 0 01-1-1z" clipRule="evenodd" /></svg>,
-            APAGADO: <svg xmlns="http://www.w3.org/2000/svg" className="h-3 w-3" viewBox="0 0 20 20" fill="currentColor"><path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zM7 9a1 1 0 000 2h6a1 1 0 100-2H7z" clipRule="evenodd" /></svg>,
-        }
-        // FIX: The key was being generated incorrectly from the status value. The key for 'ATASCO' is 'jam' and for 'APAGADO' is 'off' in the translation file.
-        const statusKeyPart = status === 'ATASCO' ? 'jam' : status === 'APAGADO' ? 'off' : 'ok';
-        const labelKey = `vulcano.status.${statusKeyPart}`;
-        const label = t(labelKey);
-        
-        return (
-            <span className={`px-2.5 py-1 text-xs font-bold rounded-full flex items-center justify-center gap-1.5 ${styles[status]}`}>
-                {icons[status]}
-                {label}
-            </span>
-        );
-    };
-
-    const machineLine: (keyof VulcanoState['machines'])[] = [ 'debeader', 'primaryShredder', 'rasperMill', 'granulators' ];
-    const separatorLine: (keyof VulcanoState['machines'])[] = [ 'magneticSeparators', 'textileClassifiers' ];
-
-    const getMachineName = (key: keyof VulcanoState['machines']) => t(`vulcano.${key}`);
-
-    return (
-        <div className="space-y-6">
-            <div className="grid grid-cols-2 gap-4 text-center">
-                <div>
-                    <p className="text-sm text-slate-400">{t('vulcano.processingRate')}</p>
-                    <p className="text-2xl font-mono font-bold">{isRunning ? processingRateTiresPerHour.toFixed(0) : '0'}</p>
-                    <p className="text-xs text-slate-500">{t('vulcano.tiresPerHour')}</p>
-                </div>
-                <div>
-                    <p className="text-sm text-slate-400">{t('vulcano.outputPurity')}</p>
-                    <p className="text-2xl font-mono font-bold text-green-400">{isRunning ? outputPurity.gcr.toFixed(1) : '0.0'}%</p>
-                    <p className="text-xs text-slate-500">{t('vulcano.gcr')}</p>
-                </div>
-            </div>
-            
-            <div className="space-y-4">
-                {/* Main Processing Line */}
-                <div className="flex items-center gap-2">
-                    {machineLine.map((key, i) => (
-                        <React.Fragment key={key}>
-                            <div className="flex flex-col items-center gap-2 flex-1">
-                                {getIcon(key, machines[key] === 'ATASCO')}
-                                <div className="text-center">
-                                    <p className="text-xs font-semibold">{getMachineName(key)}</p>
-                                    <StatusBadge status={machines[key]} />
-                                </div>
-                            </div>
-                            {i < machineLine.length - 1 && <div className="text-2xl text-slate-500 font-light">→</div>}
-                        </React.Fragment>
-                    ))}
-                </div>
-                
-                {/* Separator Lines */}
-                <div className="pt-4 mt-4 border-t border-slate-700 flex justify-around">
-                    {separatorLine.map(key => (
-                        <div key={key} className="flex flex-col items-center gap-2">
-                            {getIcon(key, machines[key] === 'ATASCO')}
-                            <div className="text-center">
-                                <p className="text-xs font-semibold">{getMachineName(key)}</p>
-                                <StatusBadge status={machines[key]} />
-                            </div>
-                        </div>
-                    ))}
-                </div>
-            </div>
-        </div>
-    );
-};
-
-export const Vulcano: React.FC<VulcanoProps> = ({ vulcanoState, setVulcanoState, setView, onNavigateToUtilities, onSaveTask }) => {
-    const { t } = useTranslations();
-    const { costs } = useUtilityCosts();
-    const [hefestosLog, setHefestosLog] = useState<string[]>([]);
+    // Cinematic View State
+    const [sceneConfig, setSceneConfig] = useState({
+        focus: 'generalView',
+        state: 'normalOperation',
+        elements: { tireFlow: true, maintenanceStaff: false, rubberDust: false, hefestosInterface: false }
+    });
+    const [cinematicPrompt, setCinematicPrompt] = useState('');
+    const [cinematicResult, setCinematicResult] = useState<{ type: 'image' | 'video', url: string } | null>(null);
+    const [isGeneratingCinematic, setIsGeneratingCinematic] = useState(false);
+    const [cinematicError, setCinematicError] = useState('');
+    const [videoProgress, setVideoProgress] = useState(0);
+    const [videoStatusMessageKey, setVideoStatusMessageKey] = useState('');
+    const [isVeoEnabled, setIsVeoEnabled] = useState(false);
     
+    const VULCANO_ELECTRICAL_DEMAND_KW = 648;
+    const { isRunning, hefestosLog } = vulcanoState;
+
+     useEffect(() => {
+        const checkApiKey = async () => {
+            if (window.aistudio && await window.aistudio.hasSelectedApiKey()) {
+                setIsVeoEnabled(true);
+            }
+        };
+        checkApiKey();
+    }, []);
+
     const handleToggleSystem = () => {
-        setVulcanoState(p => ({ ...p, isRunning: !p.isRunning }));
+        setVulcanoState(p => {
+            const newIsRunning = !p.isRunning;
+            const newMachineStatus: VulcanoMachineStatus = newIsRunning ? 'OK' : 'APAGADO';
+            
+            const logEntry = `${new Date().toLocaleTimeString()}: Sistema ${newIsRunning ? 'iniciado' : 'detenido'}.`;
+
+            return {
+                ...p,
+                isRunning: newIsRunning,
+                machines: {
+                    debeader: newMachineStatus,
+                    primaryShredder: newMachineStatus,
+                    rasperMill: newMachineStatus,
+                    granulators: newMachineStatus,
+                    magneticSeparators: newMachineStatus,
+                    textileClassifiers: newMachineStatus,
+                },
+                processingRateTiresPerHour: newIsRunning ? 200 : 0,
+                hefestosLog: [logEntry, ...(p.hefestosLog || [])].slice(0, 50),
+            };
+        });
     };
 
-    const handleAnalyzeEnergyCost = () => {
-        onNavigateToUtilities({ 
-            demands: { 'process-power': VULCANO_ELECTRICAL_DEMAND_KW }, 
-            tab: 'process-power' 
-        });
+    const handleAnalyzeEnergy = () => {
+        onNavigateToUtilities({ demands: { 'process-power': VULCANO_ELECTRICAL_DEMAND_KW }, tab: 'process-power' });
     };
 
     const handleCreateReport = () => {
@@ -189,99 +157,246 @@ export const Vulcano: React.FC<VulcanoProps> = ({ vulcanoState, setVulcanoState,
             createdAt: Date.now(),
             status: 'Por Hacer',
             contentType: ContentType.Texto,
-            eventType: 'ExecutiveReport',
             formData: {
-                objective: `Generar un reporte ejecutivo sobre la producción y viabilidad del módulo Vulcano.`,
+                objective: "Generar un reporte de producción y viabilidad para el módulo Vulcano.",
+                tone: 'Formal',
                 specifics: {
                     [ContentType.Texto]: {
-                        rawData: `Producción (kg/h): GCR=${vulcanoState.productionRateKgPerHour.gcr.toFixed(1)}, Acero=${vulcanoState.productionRateKgPerHour.steel.toFixed(1)}, Fibra=${vulcanoState.productionRateKgPerHour.fiber.toFixed(1)}.\nRiesgo de Incendio: ${vulcanoState.fireRisk.toFixed(1)}%`
+                        type: 'Informe Ejecutivo',
+                        rawData: JSON.stringify({ ...vulcanoState, hefestosLog: (hefestosLog || []).slice(0,10) }, null, 2),
                     },
-                    [ContentType.Imagen]: {},
-                    [ContentType.Video]: {},
-                    [ContentType.Audio]: {},
-                    [ContentType.Codigo]: {},
-                }
-            }
+                     [ContentType.Imagen]: {}, [ContentType.Video]: {}, [ContentType.Audio]: {}, [ContentType.Codigo]: {},
+                },
+            },
+            isIntelligent: true,
+            agentId: 'Helena, la Estratega'
         };
         onSaveTask(task);
-        alert('Tarea "Reporte de Producción y Viabilidad" creada en el Gestor de Tareas.');
+        alert('Tarea de reporte creada. Revisa el Gestor de Tareas.');
     };
+    
+     // --- Cinematic View Logic ---
+    useEffect(() => {
+        if (activeView !== 'cinematic') return;
+        
+        const { focus, state, elements } = sceneConfig;
+
+        let base = `Cinematic, photorealistic, wide shot of the 'Vulcano' tire recycling plant. `;
+        let mood = '';
+        
+        switch (focus) {
+            case 'shreddingStage': base += `The central focus is the initial shredding area, with the Debeader and Primary Shredder machines. `; break;
+            case 'granulationStage': base += `The focus is on the secondary reduction stage, with the Rasper Mill and Granulators working. `; break;
+            case 'separationStage': base += `The focus is on the final separation line, showing the magnetic separators for steel and textile classifiers for fiber. `; break;
+            default: base += `The view shows the entire processing line, from tire input to final product silos. `; break;
+        }
+
+        switch (state) {
+            case 'minorJam': mood = `However, the mood is tense. A yellow flashing light indicates a minor jam in one of the machines. The material flow is slowed. `; break;
+            case 'systemOverload': mood = `The mood is chaotic. The system is overloaded, with piles of shredded rubber accumulating between stations and alarms flashing. `; break;
+            default: mood = `The mood is powerful and efficient. The machinery is running smoothly, processing a constant flow of tires. `; break;
+        }
+
+        let elementsDesc = '';
+        if (elements.tireFlow) elementsDesc += `Whole used tires are visible on a conveyor belt at the start of the line. `;
+        if (elements.maintenanceStaff) elementsDesc += `Maintenance staff in hard hats and high-visibility vests are monitoring the machinery. `;
+        if (elements.hefestosInterface) elementsDesc += `A semi-transparent holographic interface, the 'Interfaz de Hefesto', hovers in the air, showing real-time machine status and throughput data. `;
+        if (elements.rubberDust) elementsDesc += `The air is thick with rubber dust, caught in the beams of industrial lighting. `;
+
+        const ending = `The atmosphere is industrial and loud. High detail, 8k, gritty cinematic style.`;
+        
+        setCinematicPrompt(`${base}${mood}${elementsDesc}${ending}`);
+
+    }, [sceneConfig, activeView]);
+
+    const handleGenerateImage = async () => {
+        setIsGeneratingCinematic(true); setCinematicError(''); setCinematicResult(null);
+        try {
+            const imageData = await generateCinematicImage(cinematicPrompt);
+            setCinematicResult({ type: 'image', url: `data:image/jpeg;base64,${imageData}` });
+        } catch (error) { setCinematicError("Error al generar la imagen."); } 
+        finally { setIsGeneratingCinematic(false); }
+    };
+    
+    const handleGenerateVideo = async () => {
+        setIsGeneratingCinematic(true); setCinematicError(''); setCinematicResult(null); setVideoProgress(0); setVideoStatusMessageKey('');
+        const onProgress = (key: string, prog: number) => { setVideoStatusMessageKey(key); setVideoProgress(prog); };
+        try {
+            const videoUrl = await generateCinematicVideo(cinematicPrompt, onProgress);
+            setCinematicResult({ type: 'video', url: videoUrl });
+            setIsVeoEnabled(true);
+        } catch (error) {
+            const msg = error instanceof Error ? error.message : String(error);
+            if (msg.includes("Requested entity was not found")) {
+                setIsVeoEnabled(false); setCinematicError(t('hmi.cinematicView.apiKeyError'));
+            } else { setCinematicError(msg); }
+        } finally { setIsGeneratingCinematic(false); }
+    };
+
+    const handleSaveToTasks = () => {
+        if (!cinematicResult) return;
+        const task: Task = {
+            id: `task-vulcano-vis-${Date.now()}`,
+            title: `Visualización Vulcano: ${sceneConfig.focus} (${sceneConfig.state})`,
+            createdAt: Date.now(),
+            status: 'Completado',
+            contentType: cinematicResult.type === 'image' ? ContentType.Imagen : ContentType.Video,
+            formData: { objective: cinematicPrompt },
+            result: { text: cinematicPrompt },
+            videoUrl: cinematicResult.type === 'video' ? cinematicResult.url : undefined,
+        };
+        onSaveTask(task);
+        alert(`Tarea "${task.title}" creada en el Gestor de Tareas.`);
+    };
+
+    // --- End Cinematic View Logic ---
 
     return (
         <div className="bg-slate-900 text-white p-6 rounded-lg shadow-2xl">
             <header className="text-center mb-6 border-b border-slate-700 pb-4">
                 <div className="flex justify-center items-center gap-4">
                     <h2 className="text-3xl font-bold">{t('vulcano.title')}</h2>
+                    <div className="flex items-center gap-1 p-1 bg-slate-800 rounded-md border border-slate-700">
+                        <button onClick={() => setActiveView('dashboard')} className={`px-3 py-1 text-sm rounded ${activeView === 'dashboard' ? 'bg-blue-600 text-white' : 'text-slate-400 hover:bg-slate-700'}`}>{t('hmi.tabs.controlPanel')}</button>
+                        <button onClick={() => setActiveView('cinematic')} className={`px-3 py-1 text-sm rounded ${activeView === 'cinematic' ? 'bg-blue-600 text-white' : 'text-slate-400 hover:bg-slate-700'}`}>{t('hmi.tabs.cinematicView')}</button>
+                    </div>
                     <div className="flex items-center">
-                        <input id="system-toggle" type="checkbox" checked={vulcanoState.isRunning} onChange={handleToggleSystem} className="sr-only" />
-                        <label htmlFor="system-toggle" className={`relative inline-flex items-center h-8 w-16 cursor-pointer rounded-full transition-colors ${vulcanoState.isRunning ? 'bg-green-500' : 'bg-red-500'}`}>
-                            <span className={`inline-block h-6 w-6 transform rounded-full bg-white transition-transform ${vulcanoState.isRunning ? 'translate-x-9' : 'translate-x-1'}`}/>
+                        <input id="vulcano-toggle" type="checkbox" checked={isRunning} onChange={handleToggleSystem} className="sr-only" />
+                        <label htmlFor="vulcano-toggle" className={`relative inline-flex items-center h-8 w-16 cursor-pointer rounded-full transition-colors ${isRunning ? 'bg-green-500' : 'bg-red-500'}`}>
+                            <span className={`inline-block h-6 w-6 transform rounded-full bg-white transition-transform ${isRunning ? 'translate-x-9' : 'translate-x-1'}`}/>
                         </label>
-                         <span className={`ml-3 font-bold text-lg ${vulcanoState.isRunning ? 'text-green-400' : 'text-red-400'}`}>{vulcanoState.isRunning ? 'OPERATIVO' : 'DETENIDO'}</span>
+                         <span className={`ml-3 font-bold text-lg ${isRunning ? 'text-green-400' : 'text-red-400'}`}>{isRunning ? 'OPERATIVO' : 'DETENIDO'}</span>
                     </div>
                 </div>
                 <p className="mt-2 text-md text-slate-400">{t('vulcano.subtitle')}</p>
             </header>
+            
+            {activeView === 'dashboard' && (
+                <div className="space-y-6">
+                    {/* Top Row */}
+                    <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+                        <Panel title={t('vulcano.receptionTitle')}>
+                            <div>
+                                <label className="text-sm">{t('vulcano.inputLabel')}</label>
+                                <input type="number" value={vulcanoState.inputTonsPerDay} onChange={e => setVulcanoState(p => ({ ...p, inputTonsPerDay: Number(e.target.value) }))} className="w-full mt-1 p-2 bg-slate-700 border border-slate-600 rounded-md"/>
+                            </div>
+                            <ProgressBar value={vulcanoState.storageLevelTons} max={1000} label={t('vulcano.storageLevel')} unit="ton" />
+                        </Panel>
 
-            <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-                <div className="lg:col-span-1 space-y-6">
-                    <Panel title={t('vulcano.receptionTitle')}>
-                        <div>
-                            <label className="text-sm text-slate-400">{t('vulcano.inputLabel')}</label>
-                            <input type="number" value={vulcanoState.inputTonsPerDay} onChange={(e) => setVulcanoState(p => ({...p, inputTonsPerDay: Number(e.target.value)}))} className="w-full bg-slate-700 p-2 rounded-md mt-1"/>
-                        </div>
-                        <ProgressBar value={vulcanoState.storageLevelTons} max={1000} label={t('vulcano.storageLevel')} unit="ton" />
-                    </Panel>
-                    <Panel title={t('vulcano.storageKpisTitle')}>
-                        <div className="flex justify-around items-center h-full">
-                            <KpiGauge value={vulcanoState.fireRisk} label={t('vulcano.fireRisk')} />
-                            <KpiGauge value={vulcanoState.sanitaryRisk} label={t('vulcano.sanitaryRisk')} />
-                        </div>
-                    </Panel>
-                    <Panel title={t('vulcano.hefestosLog.title')}>
-                        <div className="text-xs font-mono text-slate-400 space-y-1 h-24 overflow-y-auto">
-                            {hefestosLog.length === 0 ? <p>{t('vulcano.hefestosLog.noMessages')}</p> : hefestosLog.map((log, i) => <p key={i}>{log}</p>)}
-                        </div>
-                    </Panel>
-                </div>
+                        <Panel title={t('vulcano.processingLineTitle')}>
+                            <div className="text-center">
+                                <p className="text-sm text-slate-400">{t('vulcano.processingRate')}</p>
+                                <p className="text-4xl font-mono font-bold text-white">{vulcanoState.processingRateTiresPerHour.toFixed(0)} <span className="text-2xl text-slate-300">{t('vulcano.tiresPerHour')}</span></p>
+                            </div>
+                             <div className="grid grid-cols-2 gap-3">
+                                {(Object.entries(vulcanoState.machines) as [keyof VulcanoState['machines'], VulcanoMachineStatus][]).map(([key, status]) => {
+                                    const isJammed = status === 'ATASCO';
+                                    return (
+                                        <div key={key} className={`p-3 rounded-md flex items-center gap-3 transition-colors ${isJammed ? 'bg-red-900/50 border border-red-700' : 'bg-slate-700/50'}`}>
+                                            {getIcon(key, isJammed)}
+                                            <div>
+                                                <p className="text-sm font-semibold">{t(`vulcano.${key}`)}</p>
+                                                <StatusBadge status={status} />
+                                            </div>
+                                        </div>
+                                    );
+                                })}
+                            </div>
+                        </Panel>
 
-                <div className="lg:col-span-2">
-                    <Panel title={t('vulcano.processingLineTitle')}>
-                        <ProcessLine vulcanoState={vulcanoState} />
-                    </Panel>
-                </div>
-                
-                <div className="lg:col-span-3">
-                     <Panel title={t('vulcano.outputTitle')}>
-                        <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+                        <Panel title={t('vulcano.outputTitle')}>
                             <div className="space-y-2">
-                                <h5 className="font-semibold text-slate-300">{t('vulcano.productionRate')}</h5>
-                                <p className="text-xl font-mono">GCR: {vulcanoState.productionRateKgPerHour.gcr.toFixed(1)}</p>
-                                <p className="text-xl font-mono">Acero: {vulcanoState.productionRateKgPerHour.steel.toFixed(1)}</p>
-                                <p className="text-xl font-mono">Fibra: {vulcanoState.productionRateKgPerHour.fiber.toFixed(1)}</p>
+                                 <ProgressBar value={vulcanoState.siloLevelsKg.gcr} max={20000} label={`${t('vulcano.gcr')} Silo`} />
+                                 <ProgressBar value={vulcanoState.siloLevelsKg.steel} max={10000} label={`${t('vulcano.steel')} Silo`} />
+                                 <ProgressBar value={vulcanoState.siloLevelsKg.fiber} max={5000} label={`${t('vulcano.fiber')} Silo`} />
                             </div>
-                            <div className="space-y-3 md:col-span-2">
-                                 <h5 className="font-semibold text-slate-300">{t('vulcano.siloLevels')}</h5>
-                                <ProgressBar value={vulcanoState.siloLevelsKg.gcr} max={20000} label={t('vulcano.gcr')} />
-                                <ProgressBar value={vulcanoState.siloLevelsKg.steel} max={20000} label={t('vulcano.steel')} />
-                                <ProgressBar value={vulcanoState.siloLevelsKg.fiber} max={20000} label={t('vulcano.fiber')} />
-                            </div>
-                        </div>
-                    </Panel>
-                </div>
+                        </Panel>
+                    </div>
 
-                <div className="lg:col-span-3 grid grid-cols-1 md:grid-cols-2 gap-6">
-                    <Panel title={t('vulcano.energyCost.title')}>
-                        <p className="text-sm text-slate-400">El módulo Vulcano tiene una demanda eléctrica constante de <strong className="text-white">{VULCANO_ELECTRICAL_DEMAND_KW} kW</strong> cuando está operativo.</p>
-                        <p className="text-2xl font-mono font-bold text-center text-yellow-400">{(VULCANO_ELECTRICAL_DEMAND_KW * costs.gridElectricityPrice).toFixed(2)} €/h</p>
-                        <button onClick={handleAnalyzeEnergyCost} className="w-full bg-blue-600 text-white font-bold py-2 rounded-lg hover:bg-blue-700">{t('vulcano.energyCost.analyzeButton')}</button>
-                    </Panel>
-                     <Panel title="Reportes y Sinergias">
-                        <p className="text-sm text-slate-400">Genera un reporte completo de producción y viabilidad para enviarlo al gestor de tareas del Concilio.</p>
-                        <button onClick={handleCreateReport} className="w-full bg-purple-600 text-white font-bold py-2 rounded-lg hover:bg-purple-700">{t('vulcano.reportButton')}</button>
+                    {/* Bottom Row */}
+                    <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+                        <Panel title={t('vulcano.storageKpisTitle')}>
+                            <div className="flex justify-around items-center h-full">
+                                <KpiGauge value={vulcanoState.fireRisk} label={t('vulcano.fireRisk')} />
+                                <KpiGauge value={vulcanoState.sanitaryRisk} label={t('vulcano.sanitaryRisk')} />
+                            </div>
+                        </Panel>
+                        <Panel title={t('vulcano.hefestosLog.title')}>
+                            <div className="space-y-2 h-48 overflow-y-auto pr-2 bg-slate-900/50 rounded-md p-2 font-mono text-xs">
+                                {hefestosLog && hefestosLog.length > 0 ? (
+                                    hefestosLog.map((log, index) => <p key={index}>{log}</p>)
+                                ) : (
+                                    <p className="text-slate-500 italic">{t('vulcano.hefestosLog.noMessages')}</p>
+                                )}
+                            </div>
+                        </Panel>
+                         <Panel title="Análisis y Sinergias">
+                            <button onClick={handleAnalyzeEnergy} className="w-full bg-blue-600 text-white font-bold py-3 px-4 rounded-lg hover:bg-blue-700">{t('vulcano.energyCost.analyzeButton')}</button>
+                            <button onClick={handleCreateReport} className="w-full bg-purple-600 text-white font-bold py-3 px-4 rounded-lg hover:bg-purple-700">{t('vulcano.reportButton')}</button>
+                            <button onClick={() => setView('hyperion-9')} className="w-full bg-gray-600 text-white font-bold py-3 px-4 rounded-lg hover:bg-gray-700">Ir a SMC Hyperion-9</button>
+                            <button onClick={() => setView('fleet-simulator')} className="w-full bg-teal-600 text-white font-bold py-3 px-4 rounded-lg hover:bg-teal-700">Usar GCR en Orquestador de Flota</button>
+                            <button onClick={() => setView('circular-fleet')} className="w-full bg-green-600 text-white font-bold py-3 px-4 rounded-lg hover:bg-green-700">Ir a Flota Circular</button>
+                        </Panel>
+                    </div>
+                </div>
+            )}
+            {activeView === 'cinematic' && (
+                 <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+                    <div className="flex flex-col gap-6">
+                        <Panel title={t('vulcano.cinematic.title')}>
+                             <div className="grid grid-cols-2 gap-4">
+                                <div>
+                                    <label className="text-sm font-semibold text-slate-300">{t('vulcano.cinematic.focus')}</label>
+                                    <select value={sceneConfig.focus} onChange={e => setSceneConfig(p => ({ ...p, focus: e.target.value }))} className="w-full p-2 mt-1 bg-slate-700 border border-slate-600 rounded-md">
+                                        <option value="generalView">{t('vulcano.cinematic.generalView')}</option>
+                                        <option value="shreddingStage">{t('vulcano.cinematic.shreddingStage')}</option>
+                                        <option value="granulationStage">{t('vulcano.cinematic.granulationStage')}</option>
+                                        <option value="separationStage">{t('vulcano.cinematic.separationStage')}</option>
+                                    </select>
+                                </div>
+                                <div>
+                                    <label className="text-sm font-semibold text-slate-300">{t('vulcano.cinematic.state')}</label>
+                                    <select value={sceneConfig.state} onChange={e => setSceneConfig(p => ({ ...p, state: e.target.value }))} className="w-full p-2 mt-1 bg-slate-700 border border-slate-600 rounded-md">
+                                        <option value="normalOperation">{t('vulcano.cinematic.normalOperation')}</option>
+                                        <option value="minorJam">{t('vulcano.cinematic.minorJam')}</option>
+                                        <option value="systemOverload">{t('vulcano.cinematic.systemOverload')}</option>
+                                    </select>
+                                </div>
+                                <div className="col-span-2">
+                                    <h5 className="text-sm font-semibold mb-2">{t('hmi.cinematicView.additionalElements')}</h5>
+                                    <div className="flex flex-wrap gap-x-4 gap-y-2">
+                                        <label className="flex items-center gap-2 cursor-pointer text-xs"><input type="checkbox" checked={sceneConfig.elements.tireFlow} onChange={e => setSceneConfig(p => ({ ...p, elements: { ...p.elements, tireFlow: e.target.checked } }))} /><span>{t('vulcano.cinematic.tireFlow')}</span></label>
+                                        <label className="flex items-center gap-2 cursor-pointer text-xs"><input type="checkbox" checked={sceneConfig.elements.maintenanceStaff} onChange={e => setSceneConfig(p => ({ ...p, elements: { ...p.elements, maintenanceStaff: e.target.checked } }))} /><span>{t('vulcano.cinematic.maintenanceStaff')}</span></label>
+                                        <label className="flex items-center gap-2 cursor-pointer text-xs"><input type="checkbox" checked={sceneConfig.elements.rubberDust} onChange={e => setSceneConfig(p => ({ ...p, elements: { ...p.elements, rubberDust: e.target.checked } }))} /><span>{t('vulcano.cinematic.rubberDust')}</span></label>
+                                        <label className="flex items-center gap-2 cursor-pointer text-xs"><input type="checkbox" checked={sceneConfig.elements.hefestosInterface} onChange={e => setSceneConfig(p => ({ ...p, elements: { ...p.elements, hefestosInterface: e.target.checked } }))} /><span>{t('vulcano.cinematic.hefestosInterface')}</span></label>
+                                    </div>
+                                </div>
+                            </div>
+                        </Panel>
+                        <Panel title={t('hmi.cinematicView.cinematicCreation')}>
+                            <textarea value={cinematicPrompt} readOnly rows={10} className="w-full p-3 bg-slate-900 border border-slate-600 rounded-md text-slate-200 font-mono text-xs"/>
+                         {isVeoEnabled ? (
+                            <div className="flex gap-4">
+                                <button onClick={handleGenerateVideo} disabled={isGeneratingCinematic} className="w-full bg-purple-600 text-white font-bold py-2 rounded-lg hover:bg-purple-700 disabled:bg-slate-600">{t('hmi.cinematicView.createVideo')}</button>
+                                <button onClick={handleGenerateImage} disabled={isGeneratingCinematic} className="w-full bg-indigo-600 text-white font-bold py-2 rounded-lg hover:bg-indigo-700 disabled:bg-slate-600">{t('hmi.cinematicView.generateImage')}</button>
+                            </div>
+                        ) : (
+                             <button onClick={handleGenerateImage} disabled={isGeneratingCinematic} className="w-full bg-indigo-600 text-white font-bold py-2 rounded-lg hover:bg-indigo-700 disabled:bg-slate-600">{t('hmi.cinematicView.generateImage')}</button>
+                        )}
                     </Panel>
                 </div>
+                 <Panel title={t('hmi.cinematicView.cinematicVisualization')}>
+                    <div className="flex items-center justify-center bg-black rounded-md min-h-[300px] h-full">
+                       {isGeneratingCinematic ? <p>Generando...</p> : cinematicError ? <p className="text-red-400">{cinematicError}</p> : cinematicResult ? (
+                            <div className="w-full h-full flex flex-col gap-4">
+                                {cinematicResult.type === 'image' ? <img src={cinematicResult.url} alt="Visualización Vulcano" className="max-h-full max-w-full rounded-md object-contain flex-grow" /> : <video src={cinematicResult.url} controls autoPlay loop className="max-h-full max-w-full rounded-md flex-grow" />}
+                                <button onClick={handleSaveToTasks} className="w-full bg-green-600 text-white font-bold py-2 rounded-lg hover:bg-green-700">{t('vulcano.visualization.saveTask')}</button>
+                            </div>
+                       ) : <p className="text-slate-500">{t('hmi.cinematicView.visualizationPlaceholder')}</p>}
+                    </div>
+                </Panel>
             </div>
+            )}
         </div>
     );
 };

@@ -1,5 +1,3 @@
-
-
 import React, { useState, useRef, useCallback, useEffect, useMemo } from 'react';
 import {
   ResponsiveContainer, LineChart, Line, AreaChart, Area, BarChart, Bar, PieChart, Pie, Cell,
@@ -31,7 +29,7 @@ const CustomTooltip: React.FC<TooltipProps<ValueType, NameType>> = ({ active, pa
         <div className="bg-white p-3 border border-gray-300 rounded-lg shadow-lg text-sm">
           <p className="font-bold mb-2">{label}</p>
           {payload.map((pld, index) => (
-            <div key={index} style={{ color: pld.color }}>
+            pld && pld.color && <div key={index} style={{ color: pld.color }}>
               {`${pld.name}: ${pld.value?.toLocaleString(undefined, {maximumFractionDigits: 1})}`}
             </div>
           ))}
@@ -169,7 +167,7 @@ const ArgentinaSankeyChart: React.FC<{ chartInfo: any }> = ({ chartInfo }) => {
                         const isRight = x > width / 2;
                         return (
                             <g>
-                                <rect x={x} y={y} width={rectWidth} height={height} fill={payload.color} />
+                                <rect x={x} y={y} width={rectWidth} height={height} fill={(payload as any).color} />
                                 <text
                                     x={isRight ? x - 8 : x + rectWidth + 8}
                                     y={y + height / 2}
@@ -177,12 +175,12 @@ const ArgentinaSankeyChart: React.FC<{ chartInfo: any }> = ({ chartInfo }) => {
                                     dy="0.35em"
                                     className="text-xs fill-gray-800 font-semibold"
                                 >
-                                    {payload.name}
+                                    {(payload as any).name}
                                 </text>
                             </g>
                         );
                     }}
-                    link={(props) => ({
+                    link={(props: any) => ({
                         stroke: props.source.color,
                         strokeOpacity: 0.7
                     })}
@@ -209,16 +207,12 @@ const ArgentinaDonutChart: React.FC<{ chartInfo: any }> = ({ chartInfo }) => {
         }));
     
     const CustomDonutTooltip: React.FC<TooltipProps<ValueType, NameType>> = ({ active, payload }) => {
-        // The most robust and standard approach for Recharts tooltips, with multi-level defensive checks.
         if (active && payload && payload.length && payload[0] && payload[0].payload) {
-            
-            // The `payload` property on the payload item holds the original data object.
-            const dataEntry = payload[0].payload;
+            const dataEntry = payload[0].payload as any;
+            const color = dataEntry.color;
 
-            // Verify that the retrieved data object has all the properties we need before using them.
-            // This is the definitive guard against the "Cannot read properties of undefined" error.
-            if (dataEntry.name && typeof dataEntry.value === 'number' && dataEntry.color) {
-                const { name, value, color } = dataEntry;
+            if (dataEntry.name && typeof dataEntry.value === 'number' && color) {
+                const { name, value } = dataEntry;
                 const mtep = (value / 100 * totalMtep).toFixed(2);
                 
                 return (
@@ -230,7 +224,6 @@ const ArgentinaDonutChart: React.FC<{ chartInfo: any }> = ({ chartInfo }) => {
             }
         }
         
-        // If any check fails, return null to prevent crashes.
         return null;
     };
 

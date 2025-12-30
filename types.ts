@@ -18,8 +18,84 @@ declare global {
     exifr: any;
     // FIX: Moved pdfjsLib here to be a true global on the window object, resolving 'Cannot find name' errors.
     pdfjsLib: any;
+    $3Dmol: any;
   }
 }
+
+export interface CoherenceCriterion {
+  criterion: string;
+  evaluation: number;
+  detail: string;
+}
+
+export interface PromptCoherenceAnalysis {
+  promptText: string;
+  contentCoherence: {
+    score: number;
+    issues: CoherenceCriterion[];
+  };
+  visualCoherence: {
+    score: number;
+    strengths: CoherenceCriterion[];
+  };
+  finalScore: {
+    content: number;
+    visual: number;
+    total: number;
+    level: string;
+    summary: string;
+  };
+  recommendations: {
+    title: string;
+    detail: string;
+  }[];
+}
+
+
+export interface PeriodicElement {
+  numero_atomico: number;
+  simbolo: string;
+  nombre: string;
+  masa_atomica: number;
+  categoria: string;
+  serie_quimica: string;
+  block: string;
+  periodo: number;
+  grupo: number;
+  fase_stp: string;
+  densidad_g_l?: number;
+  densidad_g_cm3?: number;
+  punto_fusion_k: number | null;
+  punto_ebullicion_k: number | null;
+  configuracion_electronica: string;
+  electronegatividad_pauling: number | null;
+  estados_oxidacion: number[] | string;
+  descubierto_por: string;
+  descripcion_metaforica: string;
+  xpos: number;
+  ypos: number;
+}
+
+export interface Assistant {
+  id: string;
+  name: string;
+  rolePrompt: string;
+  knowledgeSource: {
+    type: 'upload' | 'kb';
+    files?: { name: string; content: string }[];
+    kb_files?: string[]; // names of files from knowledge base
+  };
+  status: 'ACTIVE' | 'INACTIVE';
+}
+
+// FIX: Added missing SkillModule interface to fix type error in TitanWorkspace.tsx.
+export interface SkillModule {
+  id: string;
+  name: string;
+  instruction: string;
+  status: 'ACTIVE' | 'INACTIVE';
+}
+
 
 export interface ParallelSimulationResult {
     total_capacity_kg_h: number;
@@ -36,6 +112,132 @@ export enum ContentType {
   Audio = 'Audio',
   Codigo = 'Código',
 }
+
+export type InteractionMode = 'direct' | 'assistant' | 'risk';
+
+export interface FinancialRiskPackage {
+  source: string;
+  alert: 'CRITICAL' | 'WARNING' | 'INFO';
+  details: string;
+  financialImpact: {
+      irr_change: number;
+      npv_change_usd: number;
+  };
+}
+
+// --- Handoff Data Structure ---
+export interface StrategicBrief {
+  moderator: {
+    userId: string;
+    name: string;
+  };
+  synthesis: string;
+  targetAudiences: string[];
+  keyAngle: string;
+  suggestedPresets: string[];
+}
+
+export interface OriginalTrigger {
+  type: string;
+  reportId: string;
+  data: any;
+}
+
+export interface DebateParticipant {
+  name: string;
+  role: string;
+}
+
+export interface ArgumentSummary {
+  role: string;
+  summary: string;
+}
+
+export interface DebateContext {
+  debateId: string;
+  debateTitle: string;
+  participants: DebateParticipant[];
+  argumentSummary: ArgumentSummary[];
+  newSimulationData?: any;
+}
+
+export interface HandoffData {
+  handoffId: string;
+  timestamp: string;
+  sourceModule: string;
+  destinationModule: string;
+  title: string;
+  status: string;
+  strategicBrief: StrategicBrief;
+  originalTrigger: OriginalTrigger;
+  debateContext: DebateContext;
+}
+// --- End Handoff Data ---
+
+// FIX: Added missing NarrativeFields interface required by geminiService.ts.
+export interface NarrativeFields {
+    objective: string;
+    audience: string;
+    conflictPoint: string;
+    uvp: string;
+}
+
+// FIX: Added missing AgentDefinition interface required by geminiService.ts.
+export interface AgentDefinition {
+    id: string;
+    name: string;
+    description: string;
+}
+
+// FIX: Added Participant interface, moved from TitansForum.tsx, for use in ForumConfig.
+export interface Participant {
+    id: string;
+    role: string;
+    intensity: number;
+    type: 'internal' | 'external';
+}
+
+// FIX: Added missing ForumConfig interface required by geminiService.ts and TitansForum.tsx.
+export interface ForumConfig {
+    instructions: string;
+    interactionStyle: string;
+    participants: {
+        id: string;
+        role: string;
+        intensity: number;
+        type: 'internal' | 'external';
+    }[];
+    files: { name: string; type: string; data: string }[];
+    knowledgeBaseFiles: { name: string; content: string }[];
+    isContingencyMode: boolean;
+}
+
+// --- Decision Package for M5 -> M6 Handoff ---
+export interface DecisionPackage {
+    sourceModule: 'M5_Strategic_Risk_Simulator';
+    simulationResult: {
+        profitabilityProbability: number;
+        avgIRR: number;
+    };
+    keyInputs: {
+        investment: number;
+        opex: number;
+        biocharPrice: number;
+        biocharPriceUncertainty: number;
+        bioOilPrice: number;
+        bioOilPriceUncertainty: number;
+        synergyOrigin: string;
+    };
+    debateSetup: {
+        title: string;
+        participants: {
+            role: string;
+            titanId: string;
+        }[];
+        missionPrompt: string;
+    };
+}
+// --- End Decision Package ---
 
 export interface FormData {
   objective: string;
@@ -60,8 +262,38 @@ export interface FormData {
       visualToneSyncStyle?: string;
       simulationData?: ParallelSimulationResult; // Modified for fleet simulation results
       calculatedKpis?: any;
+      dueDiligenceAnswers?: { [key: string]: string };
+      // Enriched preset fields
+      originalData?: FinancialRiskPackage | HandoffData | DecisionPackage | any;
+      debateTranscript?: string;
+      strategicSynthesis?: string;
+      promptTemplate?: string;
     };
-    [ContentType.Imagen]: any;
+    [ContentType.Imagen]: {
+      style?: string[];
+      elements?: string;
+      background?: string;
+      location?: string;
+      shotType?: string;
+      lighting?: string;
+      variety?: number;
+      stylization?: number;
+      rarity?: number;
+      // FIX: Added '4:3' and '3:4' to the aspectRatio type to support more image formats as per Gemini API guidelines and fix the error in data/galleryItems.ts.
+      aspectRatio?: '1:1' | '16:9' | '9:16' | '4:3' | '3:4';
+      lensType?: string;
+      lensAperture?: string;
+      cameraType?: string;
+      exposureValue?: string;
+      referenceImageUrl?: string;
+      uploadedImage?: { data: string; name: string; type: string; };
+      author?: string;
+      creationDate?: string;
+      keywords?: string;
+      levelOfDetail?: string;
+      numberOfImages?: number;
+      visualGradient?: string;
+    };
     [ContentType.Video]: {
       audiovisualSequence?: AudiovisualScene[];
       videoCreationMode?: 'text-to-video' | 'image-to-video' | 'video-to-video';
@@ -74,7 +306,6 @@ export interface FormData {
       musicGenre?: string;
       videoUrl?: string;
       inspirationImages?: { data: string; name: string; type: string; }[];
-      // FIX: Add missing properties to the Video type to address TypeScript errors across multiple files.
       duration?: string | number;
       artisticStyle?: string[];
       marketingPreset?: string;
@@ -86,13 +317,47 @@ export interface FormData {
       sourceImageForVideo?: { data: string; name: string; type: string; };
       sourceVideo?: { data: string; name: string; type: string; };
       mediaToVideoPrompt?: string;
-      aspectRatio?: '1:1' | '16:9' | '9:16';
+      // FIX: Added '4:3' and '3:4' to aspectRatio to match the Image type, resolving a type conflict in Creator components.
+      aspectRatio?: '1:1' | '16:9' | '9:16' | '4:3' | '3:4';
+      // Sinergia Estratégica
+      videoWorkflow?: 'manual' | 'synergy';
+      synergySourceDocument?: { name: string; content: string };
+      strategicMilestones?: { id: string; title: string; description: string }[];
+      emotionalTone?: string;
+      targetAudience?: string;
+      generatedCinematicScript?: string;
     };
-    [ContentType.Audio]: any;
-    [ContentType.Codigo]: any;
+    [ContentType.Audio]: {
+      scriptContent?: string;
+      voiceAgent?: string;
+      voiceIntonation?: string;
+      ambiencePreset?: string;
+      uploadedAudioFile?: { name: string; data: string; type: string };
+      outputFormat?: 'MP3' | 'WAV';
+      generatedAudioUrl?: string;
+      voiceTone?: string;
+      readingSpeed?: number;
+      continuousAmbiance?: string;
+      isolatedEffects?: string;
+      musicGenre?: string;
+      scriptFormat?: 'monologue' | 'dialogue';
+      hostVoice?: string;
+      titanVoice?: string;
+    };
+    [ContentType.Codigo]: {
+      scriptType?: 'vrc' | 'generador' | 'validador_prompt' | 'documentador';
+      emotionalDirection?: string;
+      basePrompt?: string;
+      parametersToVary?: string;
+      promptToValidate?: string;
+      validationCriteria?: string;
+      codeToDocument?: string;
+    };
   };
   scenarioA?: SimulationFormData;
   scenarioB?: SimulationFormData;
+  // FIX: Added optional 'contentType' to FormData to align with its use in story missions and resolve a type error in App.tsx.
+  contentType?: ContentType;
 }
 
 export interface ProFormData {
@@ -182,7 +447,7 @@ export interface PyrolysisMaterial {
 export interface SolidMaterial extends PyrolysisMaterial {
   fase: 'Sólido';
   propiedades: {
-    composicion: { celulosa?: number; hemicelulosa?: number; lignina?: number };
+    composicion: { celulosa?: number; hemicellulosa?: number; lignina?: number };
     analisisElemental: { carbono: number; hidrogeno: number; oxigeno: number; nitrogeno: number; azufre: number };
     analisisInmediato: { humedad: number; cenizas: number; materiaVolatil: number; carbonoFijo: number };
     poderCalorificoSuperior: number;
@@ -190,7 +455,7 @@ export interface SolidMaterial extends PyrolysisMaterial {
     propiedadesFisicas?: {
       densidad_kg_m3?: number;
       conductividad_W_mK?: number;
-      poderCalorificoInferior_MJ_kg?: number;
+      poderCalificoInferior_MJ_kg?: number;
     };
   };
 }
@@ -283,6 +548,12 @@ export interface VideoPreset {
   prompt_block: string;
 }
 
+export interface GenrePack {
+  genre: string;
+  description: string;
+  presets: VideoPreset[];
+}
+
 export interface AssaySuggestion {
   titulos: string[];
   objetivos: string[];
@@ -335,8 +606,9 @@ export interface SensationCategory {
   narrativePurpose: string;
 }
 
-export type View = 'creator' | 'library' | 'pro' | 'academia' | 'editor' | 'gallery' | 'pro-layouts' | 'tasks' | 'pyrolysis-hub' | 'comparative-lab' | 'knowledge-base' | 'unit-converter' | 'process-optimizer' | 'property-visualizer' | 'energy-balance' | 'user-guide' | 'game' | 'experiment-designer' | 'titans-atrium' | 'hmi-control-room' | 'hyperion-9' | 'assay-manager' | 'aegis-9' | 'phoenix' | 'vulcano' | 'bioeconomy-lab' | 'chronos' | 'agriDeFi' | 'gaia-lab' | 'innovation-forge' | 'kairos-panel' | 'cogeneration-simulator' | 'fleet-simulator' | 'catalyst-lab' | 'utilities-simulator' | 'generative-simulator' | 'circular-fleet' | 'energy-explorer';
-export type SystemCategory = 'Creación' | 'Inspiración' | 'Simulación Industrial' | 'Análisis Estratégico' | 'Análisis y Datos' | 'Sistema' | 'Finanzas Descentralizadas';
+export type View = 'creator' | 'library' | 'pro' | 'academia' | 'editor' | 'gallery' | 'pro-layouts' | 'tasks' | 'pyrolysis-hub' | 'comparative-lab' | 'knowledge-base' | 'process-optimizer' | 'property-visualizer' | 'energy-balance' | 'user-guide' | 'game' | 'experiment-designer' | 'titans-atrium' | 'hmi-control-room' | 'hyperion-9' | 'assay-manager' | 'aegis-9' | 'phoenix' | 'vulcano' | 'bioeconomy-lab' | 'chronos' | 'agriDeFi' | 'gaia-lab' | 'innovation-forge' | 'kairos-panel' | 'strategic-risk-simulator' | 'cogeneration-simulator' | 'fleet-simulator' | 'catalyst-lab' | 'utilities-simulator' | 'generative-simulator' | 'circular-fleet' | 'energy-explorer' | 'viability-assessor' | 'eco-casa-simulator' | 'detailed-project-input' | 'sustainable-certs' | 'certification-comparator' | 'podcast-studio' | 'titans-debate' | 'due-diligence-analyzer' | 'call-simulator' | 'collaboration-agreement' | 'interactive-fundamentals-lab' | 'architectural-synthesis-dashboard' | 'system-status-report' | 'user-profile' | 'manifesto' | 'story-mode' | 'eco-hornet-twin' | 'expert-command-center' | 'titan-workstation' | 'cinematic-audit';
+// FIX: The SystemCategory type has been updated to reflect the new categorization used throughout the application.
+export type SystemCategory = 'Núcleo Creativo' | 'Estudios y Talleres' | 'Simulación Industrial' | 'Análisis y Datos' | 'Finanzas y Estrategia' | 'Colaboración y Sistema';
 export interface SystemElement {
   id: View;
   nameKey: string;
@@ -366,7 +638,7 @@ export interface Preset {
 }
 
 export type TaskStatus = 'Por Hacer' | 'En Progreso' | 'Completado';
-export type EventType = 'ViabilityAnalysis' | 'VisualCampaign' | 'ExecutiveReport' | 'MarketOpportunityAnalysis' | 'ComparativeAnalysis' | 'Assay' | 'Resultado de Simulación' | 'LogisticsReport';
+export type EventType = 'ViabilityAnalysis' | 'VisualCampaign' | 'ExecutiveReport' | 'MarketOpportunityAnalysis' | 'ComparativeAnalysis' | 'Assay' | 'Resultado de Simulación' | 'LogisticsReport' | 'PodcastAnnouncement' | 'DueDiligenceReport' | 'CallForProposalDraft' | 'FundamentalCalculation' | 'MaterialSearchReport' | 'TitansDebate';
 
 export interface SubTask {
   name: string;
@@ -478,16 +750,24 @@ export interface CharacterProfile {
     codigo_etico: string;
     diario_de_sueños?: { type: string, content: string, timestamp: number }[];
   };
+  assistants?: Assistant[];
+  // FIX: Added 'skillModules' to CharacterProfile to resolve type error.
+  skillModules?: SkillModule[];
 }
 
 export interface ChatMessage {
-  role: 'user' | 'model';
+  id: string;
+  role: 'user' | 'model' | 'system';
   text: string;
   file?: {
     name: string;
     type: string;
     data: string;
   };
+  isSystem?: boolean;
+  isAction?: boolean;
+  actions?: { id: string; label: string }[];
+  actionsDisabled?: boolean;
 }
 
 export type LayoutBlockId = 'image' | 'data' | 'fcn' | 'prompt' | 'title' | 'video' | 'history';
@@ -611,7 +891,8 @@ export interface SimulationEngine {
 
 export interface SimulationFormData {
   simulationMode: 'simple' | 'avanzado' | 'extremo';
-  composition: { celulosa: number; hemicelulosa: number; lignina: number };
+  // FIX: Corrected typo from hemicelulosa to hemicellulosa to match other types.
+  composition: { celulosa: number; hemicellulosa: number; lignina: number };
   simpleCatalystId: string | null;
   mixture: { materialId: number; percentage: number }[];
   advancedCatalystId: string | null;
@@ -621,6 +902,19 @@ export interface SimulationFormData {
   temperatura: number;
   tiempoResidencia: number;
   oxigeno: number;
+  temperaturaRange?: number;
+  tiempoResidenciaRange?: number;
+  compositionUncertainty?: number;
+  // FIX: Added missing properties for financial simulation to resolve type error in App.tsx.
+  investment?: number;
+  years?: number;
+  costOfCapital?: number;
+  opex?: number;
+  opexUncertainty?: number;
+  bioOilPrice?: number;
+  bioOilPriceUncertainty?: number;
+  biocharPrice?: number;
+  biocharPriceUncertainty?: number;
 }
 
 export interface PlantModel {
@@ -641,13 +935,29 @@ export interface SimulationResult {
     simulationInsights: SimulationInsights | null;
     effectiveMaterial?: PyrolysisMaterial;
     plantModel: PlantModel | null;
+    yieldDistribution?: {
+      liquido: { mean: number; min: number; max: number; stdDev?: number };
+      solido: { mean: number; min: number; max: number; stdDev?: number };
+      gas: { mean: number; min: number; max: number; stdDev?: number };
+    };
+    yieldRawDistribution?: {
+        liquido: number[];
+        solido: number[];
+        gas: number[];
+    };
+    sensitivityAnalysis?: { variable: string; impact: number; description: string; }[];
 }
 
-export interface ArgusModel {
-    datasetSize: number;
-    precision: number;
-    falsePositiveRate: number;
+// Added for the M3 Simulator in TitanWorkstation
+export interface SimpleSimulationResult {
+    yields: {
+        'Bio-aceite': number;
+        'Biochar': number;
+        'Gas': number;
+    };
+    distribution: number[];
 }
+
 
 export type ReactorStatus = 'Inactivo' | 'Arrancando' | 'Estable' | 'Enfriando' | 'Alerta';
 export type OrionViewType = 'thermal' | 'production' | 'security' | 'maintenance' | 'agents' | 'camera';
@@ -674,11 +984,11 @@ export interface ReactorState {
 export type HMIStatus = 'APAGADO' | 'CALENTANDO' | 'ESTABLE' | 'ENFRIANDO';
 
 export interface HMIState {
+  systemMode: HMIStatus;
   targetTemp: number;
   residenceTime: number;
   oxygenConcentration: number;
-  agentMode: string;
-  systemMode: HMIStatus; // Reemplazado por HMIStatus
+  agentMode: AgentMode;
   reactorTemp: number;
   reactorWallTemp: number;
   reactorPressure: number;
@@ -773,6 +1083,13 @@ export type WasteComposition = {
   inertes: number;
 };
 
+// FIX: Added missing 'ArgusModel' type definition to resolve import errors in App.tsx and components/tools/Phoenix.tsx.
+export interface ArgusModel {
+  datasetSize: number;
+  precision: number;
+  falsePositiveRate: number;
+}
+
 export type ArgusKpis = {
   tasaClasificacion: number;
   purezaOrganico: number;
@@ -844,6 +1161,7 @@ export interface VulcanoState {
         steel: number;
         fiber: number;
     };
+    hefestosLog?: string[];
 }
 
 // --- Gaia Module Types ---
@@ -896,12 +1214,6 @@ export interface STOState {
 
     target: number;
     status: 'PREPARING' | 'ACTIVE' | 'COMPLETED';
-}
-
-export interface DEXListing {
-    tokenName: string;
-    price: number;
-    change24h: number;
 }
 
 export interface ChronosState {
@@ -963,6 +1275,9 @@ export interface FleetSimulationResult {
     generalStatus: string;
 }
 
+// FIX: Added FleetCommand type to resolve 'Cannot find name' error in App.tsx.
+export type FleetCommand = { type: 'APPLY_PRESET'; payload: string } | { type: 'START_ALL' } | { type: 'STOP_ALL' };
+
 export interface SynthesizedCatalyst {
   name: string;
   // Synthesis params
@@ -992,7 +1307,7 @@ export interface UtilityCostState {
   compressedAirPriceKwh: number;
   firedHeatPriceMMBtu: number;
   gridElectricityPrice: number;
-  biogasPrice_m3: number;
+  biogasPrice_m3: number; // €/m³
 }
 
 export type UtilityDutyType = 'fired-heat' | 'refrigeration' | 'cooling-water' | 'compressed-air' | 'process-power' | 'fleet-fuel';
@@ -1031,4 +1346,243 @@ export interface FleetVehicleOption {
   chargeRate_percent_h?: number; // for electric
   refuelRate_percent_h?: number; // for gas, to simulate fast refueling
   fuelCapacity_m3_or_kwh?: number;
+}
+
+export interface DetailedProjectData {
+  // Section A
+  projectName?: string;
+  location?: string;
+  housingType?: string;
+  area?: string;
+  occupants?: string;
+  projectStage?: string;
+  // Section B
+  orientation?: string;
+  walls?: string;
+  roof?: string;
+  windows?: string;
+  solarProtection?: string;
+  // Section C
+  hvac?: string;
+  hotWater?: string;
+  lighting?: string;
+  appliances?: string;
+  waterSaving?: string;
+  renewableEnergy?: string;
+  wasteManagement?: string;
+  // Section D
+  simSoftware?: string;
+  climateData?: string;
+  simScenarios?: string;
+  simAssumptions?: string;
+  // Section E
+  ecoScore?: string;
+  ecoLevel?: string;
+  energyConsumption?: string;
+  energyReduction?: string;
+  waterConsumption?: string;
+  waterReduction?: string;
+  co2Avoided?: string;
+  economicSavings?: string;
+}
+
+export interface ArchitecturalStyle {
+  id: string;
+  nombre: string;
+  descripcion: string;
+  materiales_clave: string[];
+  conexion_pyrolysis_hub: string;
+  utilidad_transversal: string;
+}
+
+// FIX: Added missing DEXListing interface for Hyperion-9.tsx
+export interface DEXListing {
+    tokenName: string;
+    price: number;
+    change24h: number;
+}
+
+export interface TechnicalRiskPackage {
+  reportId: string;
+  timestamp: string;
+  sourceModule: 'M3_Technical_Risk_Simulator';
+  projectContext: {
+    projectName: string;
+    material: string;
+  };
+  inputs: {
+    parameters: {
+      name: string;
+      baseValue: number;
+      unit: string;
+      uncertainty: number;
+    }[];
+    simulationRuns: number;
+  };
+  outputDistributions: {
+    product: 'Bio-aceite' | 'Gas' | 'Coque (Biochar)';
+    unit: string;
+    distributionType: 'normal';
+    mean: number;
+    stdDev: number;
+    confidence95_low: number;
+    confidence95_high: number;
+  }[];
+  aiAnalysis: {
+    kineticAnalysis: string;
+    sensitivityAnalysis: {
+      primaryFactor: string;
+      message: string;
+    };
+  };
+  visualizationData: {
+    bioOilHistogram: {
+      buckets: number[];
+      counts: number[];
+    };
+  };
+}
+
+
+export interface ProductYieldDistribution {
+  mean: number;
+  stdDev: number;
+  unit: string;
+}
+
+export interface TechnicalRiskProfile {
+  source: 'M3_TECHNICAL_RISK_SIMULATOR';
+  timestamp: number;
+  productProfiles: {
+    productName: 'bio-oil' | 'biochar' | 'gas';
+    yieldDistribution: ProductYieldDistribution;
+  }[];
+}
+
+export interface CompoundRiskAnalysis {
+  directorSummary: string;
+  risks: {
+    id: 'technical' | 'market';
+    title: string;
+    module: string;
+    primaryFactor: string;
+    aiAnalysis: string;
+    suggestedAction: string;
+  }[];
+}
+
+export interface NftMetadata {
+  name: string;
+  description: string;
+  image: string;
+  attributes: { trait_type: string; value: string }[];
+  proof_of_validation: {
+    capstone_submission_id: string;
+    governance_proposal_id: string;
+    governance_contract: string;
+    validation_tx_hash: string;
+  };
+}
+
+export interface Certification {
+  id: string;
+  name: string;
+  level: number;
+  reactor: string;
+  nftMetadata: NftMetadata;
+  mintDate: string;
+}
+
+export interface GovernanceEvent {
+    date: string;
+    title: string;
+    points: string;
+    details: {
+        label: string;
+        value: string;
+        link?: boolean;
+    }[];
+}
+
+// --- M5 -> M3 Handoff ---
+export interface OptimizationChallengePackage {
+  handoffId: string;
+  timestamp: string;
+  sourceModule: 'M5_Finance_Kairos_Auditor';
+  destinationModule: 'M3_Industrial_Simulation';
+  challengeTitle: string;
+  financialContext: {
+    status: 'Audit_Failed';
+    diagnostic: string;
+    keyProblem: string;
+  };
+  financialConstraints: {
+    targetCostOfCapital: { value: number; unit: string; notes: string };
+    productionCosts: { baseValue: number; uncertainty: number; unit: string; notes: string };
+    projectDuration: { value: number; unit: string };
+    capitalToRaise: { value: number; unit: string };
+  };
+  optimizationChallenge: {
+    objective: string;
+    targetMetric: string;
+    targetThreshold: number;
+    suggestedTools: string[];
+  };
+}
+
+export interface AutoSolution {
+  introduccion: string;
+  analisisCostos: {
+    titulo: string;
+    descripcion: string;
+    opcionA: string;
+    opcionB: string;
+    ahorro: string;
+  };
+  protocoloLimpieza: {
+    titulo: string;
+    descripcion: string;
+    pasos: string[];
+  };
+  recomendacionFinal: string;
+}
+export interface FinalOptimizationPackage {
+  handoffId: string;
+  timestamp: string;
+  sourceModule: "M3_Hefesto_Workstation";
+  destinationModule: "M5_Kairos_Risk_Simulator" | "M6_Governance_Debate";
+  optimizationDetails: {
+    temperature: number;
+    residenceTime: number;
+    uncertainty: number;
+    yieldBioOil: number;
+  };
+  contextualChatHistory: string;
+}
+
+export interface GovernanceHandoffPackage {
+    handoffId: string;
+    timestamp: string;
+    sourceModule: 'M3_Hefesto_Workstation';
+    destinationModule: 'M6_Governance_Debate';
+    triggeringEvent: {
+        title: string;
+        summary: string;
+    };
+    simulationInputs: {
+        projectParams: { label: string; value: number }[];
+    };
+    simulationResults: {
+        kpis: { label: string; value: number; unit: string }[];
+    };
+    debateProposal: {
+        suggestedTitle: string;
+        suggestedInstructions: string;
+        suggestedRoles: {
+            mainProponent: { name: string; rationale: string };
+            criticalOpponent: { name: string; rationale: string };
+            moderator: { name: string; rationale: string };
+        };
+    };
+    technicalProof: FinalOptimizationPackage;
 }

@@ -1,3 +1,4 @@
+
 import React, { useState, useMemo, useCallback } from 'react';
 // FIX: Import GroupKey and GroupData from global types.
 // FIX: To ensure consistent module resolution, removed the .ts extension from the import path.
@@ -56,6 +57,7 @@ export const InnovationForge: React.FC<InnovationForgeProps> = ({ coPresets, rea
     const [draggedItem, setDraggedItem] = useState<{ type: 'preset' | 'reactor'; data: any } | null>(null);
     const [experimentName, setExperimentName] = useState('Comparativa de Materias Primas para Biochar');
     const [kpi, setKpi] = useState('Maximizar Pureza de Biochar');
+    const [statusMessage, setStatusMessage] = useState('');
 
     const unassignedReactors = useMemo(() => {
         const allReactorIds = reactors.map(r => r.id);
@@ -137,7 +139,7 @@ export const InnovationForge: React.FC<InnovationForgeProps> = ({ coPresets, rea
             return;
         }
 
-        alert('¡Comando "INICIAR EXPERIMENTO" recibido! Procesando plan...');
+        setStatusMessage('¡Plan de experimento recibido! El orquestador está procesando el comando.');
 
         const assignments: { reactorId: string; presetName: string; group: string }[] = [];
         
@@ -161,6 +163,8 @@ export const InnovationForge: React.FC<InnovationForgeProps> = ({ coPresets, rea
 
         console.log("--- PLAN DE EXPERIMENTO GENERADO ---");
         console.log(JSON.stringify(experimentPlan, null, 2));
+        
+        setTimeout(() => setStatusMessage(''), 5000); // Clear message after 5 seconds
     }, [isConfigurationComplete, groups, experimentName, kpi, addEvent]);
     
     const groupDefs: { key: GroupKey; name: string }[] = [
@@ -274,7 +278,12 @@ export const InnovationForge: React.FC<InnovationForgeProps> = ({ coPresets, rea
                          </div>
                     </div>
 
-                    <div className="flex justify-end mt-8">
+                    <div className="flex justify-end items-center mt-8 gap-4">
+                        {statusMessage && (
+                            <p className="text-green-400 font-semibold animate-pulse transition-opacity duration-300">
+                                {statusMessage}
+                            </p>
+                        )}
                         <button 
                             onClick={handleStartExperiment}
                             disabled={!isConfigurationComplete}

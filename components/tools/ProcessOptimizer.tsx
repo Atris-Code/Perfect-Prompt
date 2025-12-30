@@ -1,7 +1,7 @@
 import React, { useState, useMemo } from 'react';
 import { PYROLYSIS_MATERIALS } from '../../data/pyrolysisMaterials';
 // FIX: Added Task and ContentType imports for saving task functionality.
-import type { PyrolysisMaterial, OptimizationResult, SimulationResult, SimulationFormData, Task } from '../../types';
+import type { PyrolysisMaterial, OptimizationResult, SimulationResult, SimulationFormData, Task, OptimizationChallengePackage } from '../../types';
 import { ContentType } from '../../types';
 import { optimizeProcess } from '../../services/geminiService';
 import { runSimulation } from '../../services/simulationService';
@@ -76,9 +76,10 @@ const OPTIMIZATION_GOALS = [
 // FIX: Added onSaveTask to component props.
 interface ProcessOptimizerProps {
     onSaveTask: (task: Task) => void;
+    challengePackage: OptimizationChallengePackage | null;
 }
 
-export const ProcessOptimizer: React.FC<ProcessOptimizerProps> = ({ onSaveTask }) => {
+export const ProcessOptimizer: React.FC<ProcessOptimizerProps> = ({ onSaveTask, challengePackage }) => {
     const [materialId, setMaterialId] = useState<number>(PYROLYSIS_MATERIALS[0].id);
     const [goal, setGoal] = useState<string>(OPTIMIZATION_GOALS[0]);
     const [isLoading, setIsLoading] = useState(false);
@@ -110,7 +111,8 @@ export const ProcessOptimizer: React.FC<ProcessOptimizerProps> = ({ onSaveTask }
             const formData: SimulationFormData = {
                 simulationMode: 'avanzado',
                 mixture: [{ materialId: selectedMaterial.id, percentage: 100 }],
-                composition: { celulosa: 0, hemicelulosa: 0, lignina: 0 },
+                // FIX: Corrected typo 'hemicelulosa' to 'hemicellulosa'.
+                composition: { celulosa: 0, hemicellulosa: 0, lignina: 0 },
                 simpleCatalystId: null,
                 advancedCatalystId: null, // For now, optimizer doesn't suggest catalysts
                 selectedBiomassModeId: 'mode_bio_oil', // This will be overridden by conditions

@@ -1,6 +1,9 @@
 import React, { useState, useEffect, useCallback } from 'react';
-import { GoogleGenAI } from "@google/genai";
-import type { ChronosState, STOState } from '../../types';
+import { GoogleGenAI, Type } from "@google/genai";
+import type { View, Task, OptimizationChallengePackage } from '../../types';
+import { ContentType, EventType } from '../../types';
+import { FormInput } from '../form/FormControls';
+import TaskModal from '../TaskModal';
 
 // IRR calculation using iterative approach (simplified Newton-Raphson)
 const calculateIRR = (cashFlows: number[], initialGuess = 0.1, iterations = 100): number => {
@@ -15,12 +18,12 @@ const calculateIRR = (cashFlows: number[], initialGuess = 0.1, iterations = 100)
             }
         }
         if (Math.abs(npv) < 1e-6) {
-            return irr * 100;
+            return irr;
         }
         if (derivative === 0) break; 
         irr = irr - npv / derivative;
     }
-    return irr * 100; // Return as percentage
+    return irr; // Return as a decimal
 };
 
 const calculateNPV = (cashFlows: number[], discountRate: number): number => {
@@ -32,9 +35,12 @@ const calculateNPV = (cashFlows: number[], discountRate: number): number => {
 };
 
 interface KairosFinancialPanelProps {
-    chronosState: ChronosState;
-    stoState: STOState;
+    setView: (view: View) => void;
+    onSaveTask: (task: Task) => void;
+    challengePackage: OptimizationChallengePackage | null;
+    setChallengePackage: (pkg: OptimizationChallengePackage | null) => void;
 }
+
 
 const Panel: React.FC<React.PropsWithChildren<{ title: string; }>> = ({ title, children }) => (
     <div className="bg-slate-800 p-6 rounded-lg border border-slate-700">
@@ -57,65 +63,135 @@ const Indicator: React.FC<{ label: string; value: string | number; unit?: string
     </div>
 );
 
-export const KairosFinancialPanel: React.FC<KairosFinancialPanelProps> = ({ chronosState, stoState }) => {
+const InputWithUncertaintySlider: React.FC<{
+    label: string;
+    id: string;
+    value: number;
+    onValueChange: (value: number) => void;
+    uncertainty: number;
+    onUncertaintyChange: (value: number) => void;
+}> = ({ label, id, value, onValueChange, uncertainty, onUncertaintyChange }) => (
+    <div>
+        <label htmlFor={id} className="text-sm font-medium text-slate-300 mb-1 block">{label}</label>
+        <input id={id} type="number" value={value} onChange={e => onValueChange(Number(e.target.value))} className="w-full p-2 bg-slate-700 border border-slate-600 rounded-md"/>
+        <div className="mt-2">
+            <label htmlFor={`${id}-uncertainty`} className="text-xs text-slate-400 flex justify-between">
+                <span>Incertidumbre</span>
+                <span>± {uncertainty}%</span>
+            </label>
+            <input id={`${id}-uncertainty`} type="range" min="0" max="50" step="1" value={uncertainty} onChange={e => onUncertaintyChange(Number(e.target.value))} className="w-full h-2 bg-slate-600 rounded-lg appearance-none cursor-pointer accent-blue-500" />
+        </div>
+    </div>
+);
+
+
+export const KairosFinancialPanel: React.FC<KairosFinancialPanelProps> = ({ setView, onSaveTask, setChallengePackage }) => {
     // Project Inputs
-    const [assetValue, setAssetValue] = useState(chronosState.assetOrigin.marketValue);
-    const [capitalToRaise, setCapitalToRaise] = useState(stoState.target);
+    const [assetValue, setAssetValue] = useState(300000);
+    const [assetValueUncertainty, setAssetValueUncertainty] = useState(20);
+    const [capitalToRaise, setCapitalToRaise] = useState(100000);
     const [productionCosts, setProductionCosts] = useState(160000);
-    const [projectName, setProjectName] = useState(chronosState.tokenStructure.tokenName);
+    const [productionCostsUncertainty, setProductionCostsUncertainty] = useState(15);
+    const [projectName, setProjectName] = useState('Nuevo Proyecto STO');
     const [projectYears, setProjectYears] = useState(5);
 
     // Financial Config
     const COST_OF_CAPITAL = 0.12; // 12%
 
     // Calculated Metrics
-    const [vpn, setVpn] = useState<number | null>(null);
-    const [tir, setTir] = useState<number | null>(null);
-    const [payback, setPayback] = useState<number | null>(null);
+    const [results, setResults] = useState<{
+        avgVpn: number;
+        avgTir: number;
+        avgPayback: number;
+        profitability: number;
+    } | null>(null);
 
     // AI Verdict
     const [verdict, setVerdict] = useState('');
     const [isLoading, setIsLoading] = useState(false);
     const [error, setError] = useState('');
+    const [isTaskModalOpen, setIsTaskModalOpen] = useState(false);
 
-    const handleCalculationsAndVerdict = useCallback(async () => {
+    const getRandomValue = (base: number, uncertainty: number) => {
+        const factor = (Math.random() * 2 - 1) * (uncertainty / 100);
+        return base * (1 + factor);
+    };
+
+    const handleRunAudit = useCallback(async () => {
         setIsLoading(true);
         setError('');
         setVerdict('');
-        setVpn(null);
-        setTir(null);
-        setPayback(null);
+        setResults(null);
+
+        // Allow UI to update to loading state
+        await new Promise(resolve => setTimeout(resolve, 50));
 
         try {
-            // 1. Simulate Calculations
-            const initialInvestment = -capitalToRaise;
-            const annualRevenue = assetValue / projectYears;
-            const annualCosts = productionCosts / projectYears;
-            const annualCashFlow = annualRevenue - annualCosts;
+            // 1. Monte Carlo Simulation (1000 iterations)
+            const MONTE_CARLO_RUNS = 1000;
+            const tirResults: number[] = [];
+            const vpnResults: number[] = [];
+            const paybackResults: number[] = [];
 
-            if (annualCashFlow <= 0) {
-                 setError("El flujo de caja anual es negativo o cero. Ajusta los valores para continuar.");
-                 setIsLoading(false);
-                 return;
+            const initialInvestment = -capitalToRaise;
+            if (capitalToRaise <= 0) {
+                throw new Error("El capital a recaudar debe ser un valor positivo.");
             }
 
-            const cashFlows = [initialInvestment, ...Array(projectYears).fill(annualCashFlow)];
+            for (let i = 0; i < MONTE_CARLO_RUNS; i++) {
+                const currentAssetValue = getRandomValue(assetValue, assetValueUncertainty);
+                const currentProductionCosts = getRandomValue(productionCosts, productionCostsUncertainty);
 
-            const calculatedNpv = calculateNPV(cashFlows, COST_OF_CAPITAL);
-            const calculatedIrr = calculateIRR(cashFlows);
-            const calculatedPayback = -initialInvestment / annualCashFlow;
+                const annualRevenue = currentAssetValue / projectYears;
+                const annualCosts = currentProductionCosts / projectYears;
+                const annualCashFlow = annualRevenue - annualCosts;
 
-            setVpn(calculatedNpv);
-            setTir(calculatedIrr);
-            setPayback(calculatedPayback);
+                if (annualCashFlow > 0) {
+                    const cashFlows = [initialInvestment, ...Array(projectYears).fill(annualCashFlow)];
+                    vpnResults.push(calculateNPV(cashFlows, COST_OF_CAPITAL));
+                    tirResults.push(calculateIRR(cashFlows));
+                    paybackResults.push(-initialInvestment / annualCashFlow);
+                } else {
+                    // If cash flow is negative, project is not profitable
+                    vpnResults.push(initialInvestment); // NPV is just the initial loss
+                    tirResults.push(-1); // Represents a loss
+                    paybackResults.push(Infinity); // Never pays back
+                }
+            }
+
+            const avgTir = tirResults.reduce((a, b) => a + b, 0) / tirResults.length;
+            const avgVpn = vpnResults.reduce((a, b) => a + b, 0) / vpnResults.length;
+            const finitePaybacks = paybackResults.filter(p => isFinite(p));
+            const avgPayback = finitePaybacks.length > 0 ? finitePaybacks.reduce((a, b) => a + b, 0) / finitePaybacks.length : Infinity;
+            const profitability = (tirResults.filter(tir => tir > COST_OF_CAPITAL).length / tirResults.length) * 100;
+            
+            const simulationResults = { avgVpn, avgTir, avgPayback, profitability };
+            setResults(simulationResults);
 
             // 2. Generate AI Verdict
             const ai = new GoogleGenAI({ apiKey: process.env.API_KEY });
-            const systemInstruction = `Eres Kairos, un estratega financiero de IA. Eres analítico, calmado y data-driven. No das órdenes; presentas escenarios y recomendaciones en un lenguaje claro y accionable. Tu propósito es empoderar al Director para que tome las mejores decisiones financieras.`;
-            const userPrompt = `He analizado el proyecto '${projectName}'. La Tasa Interna de Retorno (TIR) proyectada es del ${calculatedIrr.toFixed(2)}%, y nuestro coste de capital es del ${(COST_OF_CAPITAL * 100)}%. Basado en estos datos, genera un veredicto inicial conciso y profesional en español sobre si proceder con la tokenización, tal como se describe en el perfil del agente Kairos. Incluye un comentario sobre el riesgo de mercado si lo consideras apropiado.`;
+            const systemInstruction = `Eres Kairos, un Auditor de Viabilidad de STO (Security Token Offering). Eres analítico, data-driven y ofreces diagnósticos estratégicos claros en español.`;
+            
+            const isViable = simulationResults.profitability > 50 && (simulationResults.avgTir * 100) > (COST_OF_CAPITAL * 100);
+
+            const userPrompt = `
+                Analiza los resultados de una simulación de Monte Carlo para el proyecto '${projectName}'.
+                
+                Resultados de Simulación (1000 iteraciones):
+                - TIR Promedio: ${(simulationResults.avgTir * 100).toFixed(2)}%
+                - Probabilidad de Rentabilidad: ${simulationResults.profitability.toFixed(1)}%
+                - Nuestro coste de capital es del ${(COST_OF_CAPITAL * 100)}%.
+                - Valor del Activo (base): ${assetValue}
+                - Costes de Producción (base): ${productionCosts}
+
+                Tarea:
+                1. Escribe un **VEREDICTO ESTRATÉGICO**. Comienza con "¡Auditoría Exitosa!" si es viable (probabilidad > 50% y TIR > 12%), o "¡Auditoría Fallida!" si no lo es.
+                2. Justifica tu veredicto de forma concisa con los datos de la simulación. Sé específico. Si la probabilidad es marginal (ej. 52.1%), menciónalo.
+                3. Si la auditoría es fallida porque el proyecto no genera valor (ej. probabilidad de rentabilidad muy baja o 0%), añade una sección titulada "**RECOMENDACIÓN DE SINERGIA**" y sugiere enviar el problema al "Módulo 3: Simulación Industrial" para que el "Asistente de Laboratorio" diseñe una configuración que genere un Valor del Activo (ej. bio-aceite) superior a los Costes de Producción.
+            `;
 
             const response = await ai.models.generateContent({
-                model: 'gemini-2.5-flash',
+                model: 'gemini-2.5-pro',
                 contents: userPrompt,
                 config: { systemInstruction }
             });
@@ -128,85 +204,81 @@ export const KairosFinancialPanel: React.FC<KairosFinancialPanelProps> = ({ chro
         } finally {
             setIsLoading(false);
         }
-    }, [assetValue, capitalToRaise, productionCosts, projectName, projectYears]);
+    }, [assetValue, assetValueUncertainty, capitalToRaise, productionCosts, productionCostsUncertainty, projectName, projectYears]);
 
-    useEffect(() => {
-        handleCalculationsAndVerdict();
-    }, []);
+    const handleSaveTask = (title: string) => {
+        const task: Task = {
+            id: `kairos-audit-${Date.now()}`,
+            title: title,
+            createdAt: Date.now(),
+            status: 'Completado',
+            contentType: ContentType.Texto,
+            eventType: 'ViabilityAnalysis',
+            formData: {
+                // Save all inputs
+                objective: `Análisis de viabilidad para ${projectName}`,
+                specifics: {
+                    [ContentType.Texto]: {
+                        rawData: JSON.stringify({
+                            inputs: {
+                                projectName,
+                                assetValue,
+                                assetValueUncertainty,
+                                capitalToRaise,
+                                productionCosts,
+                                productionCostsUncertainty,
+                                projectYears,
+                            },
+                            results: results,
+                            verdict: verdict,
+                        }, null, 2),
+                    },
+                    [ContentType.Imagen]: {}, [ContentType.Video]: {}, [ContentType.Audio]: {}, [ContentType.Codigo]: {}
+                }
+            },
+            result: { text: verdict },
+        };
+        onSaveTask(task);
+        setIsTaskModalOpen(false);
+    };
+
+    const handleSendToM3 = () => {
+        if (!results) return;
+
+        const diagnosticText = verdict.split('**RECOMENDACIÓN DE SINERGIA**')[0].replace('**VEREDICTO ESTRATÉGICO**', '').trim();
+
+        const challenge: OptimizationChallengePackage = {
+            handoffId: `challenge-m5-m3-uuid-${Date.now()}`,
+            timestamp: new Date().toISOString(),
+            sourceModule: 'M5_Finance_Kairos_Auditor',
+            destinationModule: 'M3_Industrial_Simulation',
+            challengeTitle: `Desafío de Optimización Técnica (Auditoría Fallida para ${projectName})`,
+            financialContext: {
+                status: 'Audit_Failed',
+                diagnostic: diagnosticText,
+                keyProblem: `El 'Valor del Activo' generado por M3 debe ser consistentemente superior a los 'Costes de Producción' en la simulación.`
+            },
+            financialConstraints: {
+                targetCostOfCapital: { value: COST_OF_CAPITAL * 100, unit: '%', notes: 'El TIR del nuevo escenario debe superar este 12%.' },
+                productionCosts: { baseValue: productionCosts, uncertainty: productionCostsUncertainty / 100, unit: '€/año', notes: `El 'Valor del Activo' generado por M3 debe superar este coste.` },
+                projectDuration: { value: projectYears, unit: 'Años' },
+                capitalToRaise: { value: capitalToRaise, unit: '€' }
+            },
+            optimizationChallenge: {
+                objective: "Identifica una nueva configuración de variables (costes, precios, demanda, etc.) que permita diseñar un escenario base donde el 'Valor del Activo' sea consistentemente superior a los 'Costes de Producción'.",
+                targetMetric: 'Valor del Activo (Anual)',
+                targetThreshold: productionCosts / projectYears,
+                suggestedTools: ["M3_Reactor_P01", "M3_Phoenix"]
+            }
+        };
+
+        setChallengePackage(challenge);
+        setView('process-optimizer');
+    };
 
     return (
         <div className="bg-slate-900 text-white p-8 rounded-lg min-h-full font-sans">
+             {isTaskModalOpen && <TaskModal onClose={() => setIsTaskModalOpen(false)} onSave={handleSaveTask} />}
             <header className="text-center mb-8">
                 <h1 className="text-4xl font-bold">Panel de Proyección de Kairos</h1>
-                <p className="text-slate-400 mt-2">Análisis de Viabilidad para Nuevos Proyectos de Tokenización</p>
-            </header>
-
-            <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
-                <div className="lg:col-span-1 space-y-6">
-                    <Panel title="Datos del Proyecto (Chronos)">
-                         <div>
-                            <label htmlFor="projectName" className="text-sm font-medium text-slate-300 mb-1 block">Nombre del Proyecto</label>
-                            <input id="projectName" type="text" value={projectName} onChange={e => setProjectName(e.target.value)} className="w-full p-2 bg-slate-700 border border-slate-600 rounded-md"/>
-                        </div>
-                        <div>
-                            <label htmlFor="assetValue" className="text-sm font-medium text-slate-300 mb-1 block">Valor del Activo</label>
-                            <input id="assetValue" type="number" value={assetValue} onChange={e => setAssetValue(Number(e.target.value))} className="w-full p-2 bg-slate-700 border border-slate-600 rounded-md"/>
-                        </div>
-                         <div>
-                            <label htmlFor="capitalToRaise" className="text-sm font-medium text-slate-300 mb-1 block">Capital a Recaudar</label>
-                            <input id="capitalToRaise" type="number" value={capitalToRaise} onChange={e => setCapitalToRaise(Number(e.target.value))} className="w-full p-2 bg-slate-700 border border-slate-600 rounded-md"/>
-                        </div>
-                        <div>
-                            <label htmlFor="productionCosts" className="text-sm font-medium text-slate-300 mb-1 block">Costes de Producción Totales</label>
-                            <input id="productionCosts" type="number" value={productionCosts} onChange={e => setProductionCosts(Number(e.target.value))} className="w-full p-2 bg-slate-700 border border-slate-600 rounded-md"/>
-                        </div>
-                         <div>
-                            <label htmlFor="projectYears" className="text-sm font-medium text-slate-300 mb-1 block">Duración del Proyecto (Años)</label>
-                            <input id="projectYears" type="number" value={projectYears} onChange={e => setProjectYears(Number(e.target.value))} className="w-full p-2 bg-slate-700 border border-slate-600 rounded-md"/>
-                        </div>
-                    </Panel>
-                    <button onClick={handleCalculationsAndVerdict} disabled={isLoading} className="w-full bg-blue-600 text-white font-bold py-3 px-4 rounded-lg hover:bg-blue-700 disabled:bg-slate-500 disabled:cursor-not-allowed transition-colors">
-                        {isLoading ? 'Analizando...' : 'Recalcular y Generar Veredicto'}
-                    </button>
-                </div>
-
-                <div className="lg:col-span-2 space-y-6">
-                    <Panel title="Indicadores Clave Calculados">
-                        <Indicator
-                            label="VPN (Valor Presente Neto)"
-                            value={vpn !== null ? vpn.toLocaleString('es-ES', { style: 'currency', currency: 'USD' }) : '-'}
-                            valueClassName={vpn !== null ? (vpn > 0 ? 'text-green-400' : 'text-red-400') : ''}
-                            isLoading={isLoading}
-                        />
-                         <Indicator
-                            label="TIR (Tasa Interna de Retorno)"
-                            value={tir !== null ? tir.toFixed(2) : '-'}
-                            unit="%"
-                            valueClassName={tir !== null ? (tir > COST_OF_CAPITAL * 100 ? 'text-green-400' : 'text-red-400') : ''}
-                            isLoading={isLoading}
-                        />
-                         <Indicator
-                            label="Payback (Periodo de Recuperación)"
-                            value={payback !== null ? payback.toFixed(2) : '-'}
-                            unit="años"
-                            isLoading={isLoading}
-                        />
-                         <p className="text-xs text-slate-500 pt-2">Cálculos basados en un coste de capital del {(COST_OF_CAPITAL * 100).toFixed(0)}%.</p>
-                    </Panel>
-
-                    <Panel title="Veredicto del Agente: Kairos">
-                        {isLoading && !verdict ? (
-                             <div className="flex justify-center items-center h-24">
-                                <p className="text-slate-400 animate-pulse">Kairos está analizando los datos...</p>
-                             </div>
-                        ) : error ? (
-                             <p className="text-red-400">{error}</p>
-                        ) : (
-                            <p className="text-slate-300 leading-relaxed whitespace-pre-wrap">{verdict || "El veredicto del agente aparecerá aquí."}</p>
-                        )}
-                    </Panel>
-                </div>
-            </div>
-        </div>
-    );
-};
+                

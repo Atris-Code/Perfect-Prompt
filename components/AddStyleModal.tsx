@@ -1,171 +1,146 @@
 import React, { useState } from 'react';
-import type { StyleDefinition } from '../types';
-import { FormInput, FormTextarea } from './form/FormControls';
+import { FormInput, FormTextarea, FormSelect } from './form/FormControls';
 
-interface AddStyleModalProps {
+interface PromptContributionModalProps {
   onClose: () => void;
-  onSave: (newStyle: StyleDefinition) => void;
+  onSave: (handoffJson: any) => void;
 }
 
-const AddStyleModal: React.FC<AddStyleModalProps> = ({ onClose, onSave }) => {
-  const [formData, setFormData] = useState({
-    style: '',
-    description: '',
-    categoryName: '',
-    dominantColors: '',
-    accentColors: '',
-    artistInspiration: '',
-    keywords: '',
-  });
-  const [errors, setErrors] = useState<Record<string, string>>({});
+const readFileAsText = (file: File): Promise<string> => {
+    return new Promise((resolve, reject) => {
+        const reader = new FileReader();
+        reader.onload = () => resolve(reader.result as string);
+        reader.onerror = reject;
+        reader.readAsText(file);
+    });
+};
 
-  const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
-    const { name, value } = e.target;
-    setFormData(prev => ({ ...prev, [name]: value }));
-    if (errors[name]) {
-      setErrors(prev => {
-        const newErrors = { ...prev };
-        delete newErrors[name];
-        return newErrors;
-      });
-    }
-  };
+const readFileAsDataURL = (file: File): Promise<string> => {
+    return new Promise((resolve, reject) => {
+        const reader = new FileReader();
+        reader.onload = () => resolve(reader.result as string);
+        reader.onerror = reject;
+        // FIX: Corrected typo in FileReader method name.
+        reader.readAsDataURL(file);
+    });
+};
 
-  const validateHexColor = (color: string): boolean => {
-    return /^#([A-Fa-f0-9]{6}|[A-Fa-f0-9]{3})$/.test(color.trim());
-  };
+const PromptContributionModal: React.FC<PromptContributionModalProps> = ({ onClose, onSave }) => {
+  const [title, setTitle] = useState('');
+  const [description, setDescription] = useState('');
+  const [promptBody, setPromptBody] = useState('');
+  const [targetModule, setTargetModule] = useState('M3_Simulation');
+  const [testProofFile, setTestProofFile] = useState<File | null>(null);
+  const [requestedReputation, setRequestedReputation] = useState(10);
+  const [error, setError] = useState('');
 
-  const validate = () => {
-    const newErrors: Record<string, string> = {};
-    if (!formData.style.trim()) newErrors.style = 'El nombre del estilo es obligatorio.';
-    if (!formData.description.trim()) newErrors.description = 'La descripción es obligatoria.';
-    if (!formData.categoryName.trim()) newErrors.categoryName = 'La categoría es obligatoria.';
-    
-    const dominantColors = formData.dominantColors.split(',').filter(c => c.trim());
-    if (dominantColors.length > 0 && !dominantColors.every(validateHexColor)) {
-      newErrors.dominantColors = 'Todos los colores deben ser códigos hexadecimales válidos (ej: #FF5733).';
-    }
-
-    const accentColors = formData.accentColors.split(',').filter(c => c.trim());
-    if (accentColors.length > 0 && !accentColors.every(validateHexColor)) {
-      newErrors.accentColors = 'Todos los colores deben ser códigos hexadecimales válidos (ej: #FF5733).';
-    }
-
-    setErrors(newErrors);
-    return Object.keys(newErrors).length === 0;
-  };
-
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (validate()) {
-      const newStyle: StyleDefinition = {
-        id_style: `custom_${Date.now()}`,
-        style: formData.style.trim(),
-        description: formData.description.trim(),
-        category: 'personalizado', // Internal category for custom styles
-        categoryName: formData.categoryName.trim(),
-        sensacion_atmosfera: ['S1', 'Rigor y Precisión'], // Default sensation
-        color_palette: {
-          dominant: formData.dominantColors.split(',').map(c => c.trim()).filter(Boolean),
-          accent: formData.accentColors.split(',').map(c => c.trim()).filter(Boolean),
-        },
-        artist_inspiration: formData.artistInspiration.split(',').map(a => a.trim()).filter(Boolean),
-        keywords: formData.keywords.split(',').map(k => k.trim()).filter(Boolean),
-      };
-      onSave(newStyle);
-      onClose();
+    if (!title || !description || !promptBody || !testProofFile) {
+      setError('Todos los campos, incluyendo la prueba de testeo, son obligatorios.');
+      return;
     }
+    setError('');
+
+    let testProofData: any;
+    let testProofType: string;
+
+    try {
+        if (testProofFile.type.includes('json')) {
+            const text = await readFileAsText(testProofFile);
+            testProofData = JSON.parse(text);
+            testProofType = 'JSON_Output';
+        } else if (testProofFile.type.startsWith('image/')) {
+            const dataUrl = await readFileAsDataURL(testProofFile);
+            testProofData = dataUrl.split(',')[1]; // aistudio expects just the base64 part for images
+            testProofType = 'Image_Output';
+        } else {
+            testProofData = await readFileAsText(testProofFile);
+            testProofType = 'Text_Output';
+        }
+    } catch (err) {
+        setError(err instanceof Error ? `Error al procesar el archivo de prueba: ${err.message}` : 'Error al procesar archivo.');
+        return;
+    }
+
+    const handoffJson = {
+      handoffId: `ph-uuid-${Date.now()}`,
+      timestamp: new Date().toISOString(),
+      sourceModule: "M1_Prompt_Library",
+      proposer: {
+        userId: "usr_investigador_001", // Placeholder
+        userWallet: "0xAbc...123" // Placeholder
+      },
+      contributionType: "TESTED_PROMPT",
+      prompt: {
+        title: title,
+        description: description,
+        promptBody: promptBody,
+        targetModule: targetModule
+      },
+      testProof: {
+        type: testProofType,
+        data: testProofData
+      },
+      governanceRequest: {
+        requestedReputation: requestedReputation,
+        // FIX: Corrected object property definition to be a valid key-value pair and used a string literal for the value.
+        "proposalType": "REWARD"
+      }
+    };
+
+    onSave(handoffJson);
   };
+  
+  const targetModuleOptions = [
+      { value: 'M1_Creative_Editorial', label: 'M1: Creador/Editorial' },
+      { value: 'M3_Simulation', label: 'M3: Simuladores Industriales' },
+      { value: 'M4_Data_Analysis', label: 'M4: Análisis de Datos' },
+      { value: 'M5_Strategic_Risk_Simulator', label: 'M5: Simulador de Riesgo Estratégico' },
+  ];
 
   return (
     <div
       role="dialog"
       aria-modal="true"
-      aria-labelledby="add-style-modal-title"
+      aria-labelledby="prompt-contribution-modal-title"
       className="fixed inset-0 bg-black bg-opacity-70 flex items-center justify-center z-50 p-4 animate-fade-in"
       onClick={onClose}
     >
       <div
-        className="bg-white rounded-xl shadow-2xl max-w-2xl w-full overflow-hidden transform animate-scale-in"
+        className="bg-white rounded-xl shadow-2xl max-w-2xl w-full overflow-hidden transform animate-scale-in flex flex-col max-h-[90vh]"
         onClick={(e) => e.stopPropagation()}
       >
-        <form onSubmit={handleSubmit}>
-          <div className="p-8">
-            <h3 id="add-style-modal-title" className="text-2xl font-bold text-gray-900 mb-6">Añadir Estilo Personalizado</h3>
+        <form onSubmit={handleSubmit} className="flex flex-col h-full">
+          <div className="p-8 overflow-y-auto">
+            <h3 id="prompt-contribution-modal-title" className="text-2xl font-bold text-gray-900 mb-6">Subir Prompt Testeado a Gobernanza</h3>
             
+            {error && <p className="mb-4 text-sm text-red-600 bg-red-100 p-3 rounded-md">{error}</p>}
+
             <div className="space-y-4">
-              <FormInput
-                label="Nombre del Estilo"
-                id="style"
-                name="style"
-                value={formData.style}
-                onChange={handleChange}
-                error={errors.style}
-                required
-              />
-              <FormTextarea
-                label="Descripción"
-                id="description"
-                name="description"
-                rows={3}
-                value={formData.description}
-                onChange={handleChange}
-                required
-              />
-              {errors.description && <p className="mt-1 text-sm text-red-600">{errors.description}</p>}
-              <FormInput
-                label="Categoría"
-                id="categoryName"
-                name="categoryName"
-                placeholder="Ej: Arte Digital, Ilustración"
-                value={formData.categoryName}
-                onChange={handleChange}
-                error={errors.categoryName}
-                required
-              />
-              <FormInput
-                label="Colores Dominantes (separados por comas)"
-                id="dominantColors"
-                name="dominantColors"
-                placeholder="Ej: #4E3A31, #A97D5D"
-                value={formData.dominantColors}
-                onChange={handleChange}
-                error={errors.dominantColors}
-              />
-              <FormInput
-                label="Colores de Acento (separados por comas)"
-                id="accentColors"
-                name="accentColors"
-                placeholder="Ej: #9C3B2D, #3B6B5F"
-                value={formData.accentColors}
-                onChange={handleChange}
-                error={errors.accentColors}
-              />
-              <FormInput
-                label="Inspiración Artística (separados por comas)"
-                id="artistInspiration"
-                name="artistInspiration"
-                placeholder="Ej: Artista A, Artista B"
-                value={formData.artistInspiration}
-                onChange={handleChange}
-              />
-               <FormInput
-                label="Palabras Clave (separados por comas)"
-                id="keywords"
-                name="keywords"
-                placeholder="Ej: futurista, neón, distopía"
-                value={formData.keywords}
-                onChange={handleChange}
-              />
+              <FormInput label="Título del Prompt" id="title" name="title" value={title} onChange={e => setTitle(e.target.value)} required />
+              <FormTextarea label="Descripción (qué hace y por qué es valioso)" id="description" name="description" rows={3} value={description} onChange={e => setDescription(e.target.value)} required />
+              <FormTextarea label="Cuerpo del Prompt (el texto/JSON del prompt)" id="promptBody" name="promptBody" rows={6} value={promptBody} onChange={e => setPromptBody(e.target.value)} required />
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  <FormSelect label="Módulo de Destino" id="targetModule" name="targetModule" value={targetModule} onChange={e => setTargetModule(e.target.value)} required>
+                      {targetModuleOptions.map(opt => <option key={opt.value} value={opt.value}>{opt.label}</option>)}
+                  </FormSelect>
+                  <FormInput label="Reputación Solicitada" id="requestedReputation" name="requestedReputation" type="number" value={requestedReputation} onChange={e => setRequestedReputation(Number(e.target.value))} required />
+              </div>
+               <div>
+                  <label htmlFor="testProofFile" className="block text-sm font-medium text-gray-700">Prueba de Testeo (¡Crítico!)</label>
+                  <p className="text-xs text-gray-500 mb-2">Adjunta el output generado por el prompt (JSON, imagen, texto, etc.).</p>
+                  <input id="testProofFile" name="testProofFile" type="file" onChange={e => setTestProofFile(e.target.files ? e.target.files[0] : null)} className="block w-full text-sm text-gray-500 file:mr-4 file:py-2 file:px-4 file:rounded-full file:border-0 file:text-sm file:font-semibold file:bg-blue-50 file:text-blue-700 hover:file:bg-blue-100"/>
+              </div>
             </div>
           </div>
 
-          <div className="bg-gray-50 px-8 py-4 flex justify-end space-x-3">
+          <div className="bg-gray-50 px-8 py-4 flex justify-end space-x-3 mt-auto flex-shrink-0">
             <button type="button" onClick={onClose} className="px-4 py-2 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-md shadow-sm hover:bg-gray-50 focus:outline-none">
               Cancelar
             </button>
             <button type="submit" className="px-4 py-2 text-sm font-medium text-white bg-blue-600 border border-transparent rounded-md shadow-sm hover:bg-blue-700 focus:outline-none">
-              Guardar Estilo
+              Enviar a Validación
             </button>
           </div>
         </form>
@@ -180,4 +155,4 @@ const AddStyleModal: React.FC<AddStyleModalProps> = ({ onClose, onSave }) => {
   );
 };
 
-export default AddStyleModal;
+export default PromptContributionModal;

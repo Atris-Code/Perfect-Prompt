@@ -3,6 +3,90 @@ import { ContentType } from '../types';
 
 export const PRESETS: Preset[] = [
   {
+    name: "preset_email_investor_risk",
+    data: {
+      objective: "Redactar un email para inversores sobre el riesgo M5 (Biochar), con un ángulo de 'Transparencia Radical'.",
+      tone: 'Profesional',
+      specifics: {
+        [ContentType.Texto]: {
+          type: 'Email formal',
+          audience: 'Inversores',
+          promptTemplate: `[INICIO DEL PROMPT AUTO-RELLENADO]
+
+ROL: Actúa como un Director de Comunicación Estratégica, experto en relaciones con inversores y análisis financiero.
+
+CONTEXTO ESTRATÉGICO (SÍNTESIS HUMANA):
+Tu tarea es redactar un email para nuestros inversores. La síntesis de nuestro "Debate de Titanes" es la siguiente:
+"{strategicBrief.synthesis}"
+"El ángulo de comunicación debe ser '{strategicBrief.keyAngle}'. El resultado original ({originalTrigger.profitabilityProbability}%) fue invalidado. La nueva fuente de verdad es la simulación de estrés (TIR {newSimulationData.avgIRR}%). Enmarca esto como un éxito de nuestro proceso de gobernanza, no como un error de cálculo."
+
+DATOS ANALÍTICOS (LA PRUEBA):
+Debes basar tu argumento en los siguientes datos validados:
+1. Simulación Invalidada (Optimista):
+   (Inyectado desde originalTrigger.data)
+   - TIR Promedio: {originalTrigger.avgIRR}%
+   - Prob. Rentabilidad: {originalTrigger.profitabilityProbability}%
+   - Supuesto OPEX (Invalidado): {originalTrigger.opex} €
+2. Simulación Validada (Estrés):
+   (Inyectado desde el debateContext - la nueva simulación)
+   - TIR Promedio: {newSimulationData.avgIRR}%
+   - Prob. Rentabilidad: {newSimulationData.profitabilityProbability}%
+   - Supuesto OPEX (Validado): {newSimulationData.keyInputs.opex} €
+
+CONTEXTO DEL DEBATE (EL "POR QUÉ"):
+Para tu referencia, así es como llegamos a esta conclusión:
+(Inyectado desde debateContext.argumentSummary)
+{debateContext.argumentSummary}
+
+TAREA:
+Genera el borrador del email para los inversores. Debe ser transparente, confiado y enmarcar la re-simulación como una fortaleza de nuestro sistema de gobernanza y meritocracia.
+
+[FIN DEL PROMPT AUTO-RELLENADO]`
+        },
+        [ContentType.Imagen]: {},
+        [ContentType.Video]: {},
+        [ContentType.Audio]: {},
+        [ContentType.Codigo]: {},
+      }
+    }
+  },
+  {
+    name: "preset_infographic_comparison",
+    data: {
+      objective: "Crear una infografía comparativa entre la simulación optimista y la validada por estrés.",
+      tone: 'Informativo',
+      specifics: {
+        [ContentType.Texto]: {},
+        [ContentType.Imagen]: {
+          style: ['Realismo Científico / Infografía 3D'],
+          elements: "Dos columnas, 'Optimista' vs 'Validada'. Gráficos de barras para TIR y Probabilidad. Iconos de riesgo. Paleta de colores verde para optimista, ámbar/rojo para validada.",
+          aspectRatio: '16:9',
+        },
+        [ContentType.Video]: {},
+        [ContentType.Audio]: {},
+        [ContentType.Codigo]: {},
+      }
+    }
+  },
+  {
+    name: "Informe de Comparativa de Materiales",
+    data: {
+      objective: "Generar un informe ejecutivo comparando materiales basado en una búsqueda específica en la base de datos.",
+      tone: "Analítico / Formal",
+      specifics: {
+        [ContentType.Texto]: {
+          type: "Informe Ejecutivo",
+          audience: "Equipo de Dirección / Ingenieros de Proceso",
+          uvp: "Este informe presenta una tabla de resultados de búsqueda para un análisis rápido y toma de decisiones."
+        },
+        [ContentType.Imagen]: {},
+        [ContentType.Video]: {},
+        [ContentType.Audio]: {},
+        [ContentType.Codigo]: {},
+      }
+    }
+  },
+  {
     name: "Informe de Viabilidad de Flota",
     data: {
       objective: "Generar un informe ejecutivo sobre la viabilidad y la capacidad de producción de una configuración de flota de pirólisis con {modules} módulos EHP-500.",
@@ -84,36 +168,6 @@ export const PRESETS: Preset[] = [
     }
   },
   {
-    name: "CIENCIA FICCION EPICA (SUEÑO DEL ISOTOPO)",
-    data: {
-      objective: "Un sueño del isótopo de Hidrógeno 'Protio', quien observa una disputa cósmica entre las 'Tierras Raras', que son territoriales y complejas, y los 'Gases Nobles', que son etéreos y autosuficientes. La pirólisis se representa como un evento catalizador que descompone lo complejo (Tierras Raras) en sus esencias más puras (Gases Nobles), revelando una verdad fundamental sobre el universo.",
-      tone: "Solemne / Filosófico",
-      activeAgents: ['Crítico de Arte', 'Curator'],
-      specifics: {
-        [ContentType.Video]: {
-          artisticStyle: ["Realismo Mágico"],
-          scriptSummary: "Estilo visual inspirado en Terrence Malick y Denis Villeneuve, con una paleta de colores de espectros de emisión atómica. Lenguaje de cámara: Cinematografía Épica y Lenta (movimientos amplios, ángulos contrapicados/picados). VFX: Partículas Etéreas y Transformación Fractal. Representación visual: Gases Nobles como auroras, Tierras Raras como minerales cristalinos.",
-          cameraMovement: "Epic Rising Panorama",
-          vfx: "Partículas Mágicas (Energy Wisps)",
-        },
-        [ContentType.Audio]: {
-          voiceTone: "Solemne / Filosófico",
-          readingSpeed: 25,
-          voiceType: "Grave y resonante",
-          continuousAmbiance: "Ambiente Cósmico Inmersivo",
-          musicGenre: "Score Orquestal Minimalista (estilo Hans Zimmer + Jóhann Jóhannsson)",
-          enableAdvancedSpatialAudio: true,
-          acousticEnvironmentScale: "macro",
-          soundPositioning: "Gases Nobles se mueven libremente. Tierras Raras emiten sonidos graves y localizados. La voz del narrador (Hidrógeno) emana desde el centro.",
-          surfaceMaterials: "Cristal",
-        },
-        [ContentType.Texto]: {},
-        [ContentType.Imagen]: {},
-        [ContentType.Codigo]: {},
-      }
-    }
-  },
-  {
     name: "DOCUMENTAL EXPLICATIVO (TIPO VOX)",
     data: {
         objective: "Explicar un proceso o resultado específico de la pirólisis a una audiencia general pero curiosa.",
@@ -163,17 +217,17 @@ export const PRESETS: Preset[] = [
         tone: "Susurrado / Calmado",
         activeAgents: ['Crítico de Arte', 'Curator'],
         specifics: {
+            // FIX: Added missing empty objects for Texto, Imagen, and Codigo to ensure the 'specifics' object is complete.
+            [ContentType.Texto]: {},
+            [ContentType.Imagen]: {},
             [ContentType.Video]: {
                 scriptSummary: "Estilo visual 'Macro y Primerísimos Planos'. Movimientos de cámara 'Observacionales y Estáticos'.",
             },
             [ContentType.Audio]: {
                 voiceTone: "Susurrado / Calmado",
                 isolatedEffects: "Sonidos de pellets de madera cayendo, el crujido sutil del carbón, el burbujeo del bio-oil.",
-                enableAdvancedSpatialAudio: true,
-                soundPositioning: "Sonidos muy cercanos al oyente/cámara. Trayectorias lentas de izquierda a derecha."
+                // FIX: Removed video-specific properties from audio object.
             },
-            [ContentType.Texto]: {},
-            [ContentType.Imagen]: {},
             [ContentType.Codigo]: {},
         }
     }
@@ -185,6 +239,9 @@ export const PRESETS: Preset[] = [
         tone: "Apasionado / Esperanzador",
         activeAgents: ['Curator', 'Crítico de Arte'],
         specifics: {
+            // FIX: Added missing empty objects for Texto, Imagen, and Codigo to ensure the 'specifics' object is complete.
+            [ContentType.Texto]: {},
+            [ContentType.Imagen]: {},
             [ContentType.Video]: {
                 visualStyle: "Estilo Documental Crudo y Realista",
                 scriptSummary: "Estilo visual 'Documental Cinematográfico Emotivo'. Movimientos de cámara 'Cámara en mano, seguimiento a personajes'."
@@ -193,8 +250,7 @@ export const PRESETS: Preset[] = [
                 voiceTone: "Apasionado / Esperanzador",
                 musicGenre: "Score Orquestal Ascendente y Emotivo"
             },
-            [ContentType.Texto]: {},
-            [ContentType.Imagen]: {},
+            // FIX: Removed duplicate empty ContentType keys.
             [ContentType.Codigo]: {},
         }
     }
@@ -426,4 +482,119 @@ export const PRESETS: Preset[] = [
       }
     }
   },
+  {
+    name: "Resumen Ejecutivo de Forum IA",
+    data: {
+      objective: "Generar un resumen ejecutivo conciso y estratégico a partir de la transcripción de un Forum de Titanes.",
+      tone: "Profesional / Analítico",
+      specifics: {
+        [ContentType.Texto]: {
+          type: "Resumen Ejecutivo",
+          audience: "Equipo de Dirección / Inversores",
+          conflictPoint: "Las discusiones largas y complejas a menudo ocultan las conclusiones clave. Se necesita un resumen claro para la toma de decisiones.",
+          uvp: "Este documento extrae y sintetiza los puntos de acuerdo, desacuerdo y las acciones a seguir de la transcripción del Forum, proporcionando una visión clara y accionable."
+        },
+        [ContentType.Imagen]: {},
+        [ContentType.Video]: {},
+        [ContentType.Audio]: {},
+        [ContentType.Codigo]: {},
+      }
+    }
+  },
+  {
+    name: "Protocolo de Contingencia Generado por IA",
+    data: {
+      objective: "Documentar un protocolo de contingencia generado por el Forum de Titanes en modo de simulación offline.",
+      tone: "Técnico / Formal",
+      specifics: {
+        [ContentType.Texto]: {
+          type: "Protocolo de Contingencia",
+          audience: "Equipo de Operaciones / Jefes de Planta",
+          uvp: "Este documento captura las acciones críticas a tomar durante una emergencia, basado en el análisis de agentes IA sobre datos locales."
+        },
+        [ContentType.Imagen]: {},
+        [ContentType.Video]: {},
+        [ContentType.Audio]: {},
+        [ContentType.Codigo]: {},
+      }
+    }
+  },
+  {
+    name: "CIENCIA FICCION EPICA (SUEÑO DEL ISOTOPO)",
+    data: {
+      objective: "Un sueño del isótopo de Hidrógeno 'Protio', quien observa una disputa cósmica entre las 'Tierras Raras', que son territoriales y complejas, y los 'Gases Nobles', que son etéreos y autosuficientes. La pirólisis se representa como un evento catalizador que descompone lo complejo (Tierras Raras) en sus esencias más puras (Gases Nobles), revelando una verdad fundamental sobre el universo.",
+      tone: "Solemne / Filosófico",
+      activeAgents: ['Crítico de Arte', 'Curator'],
+      specifics: {
+        [ContentType.Video]: {
+          artisticStyle: ["Realismo Mágico"],
+          scriptSummary: "Estilo visual inspirado en Terrence Malick y Denis Villeneuve, con una paleta de colores de espectros de emisión atómica. Lenguaje de cámara: Cinematografía Épica y Lenta (movimientos amplios, ángulos contrapicados/picados). VFX: Partículas Etéreas y Transformación Fractal. Representación visual: Gases Nobles como auroras, Tierras Raras como minerales cristalinos.",
+          cameraMovement: "Epic Rising Panorama",
+          vfx: "Partículas Mágicas (Energy Wisps)",
+        },
+        [ContentType.Audio]: {
+          voiceTone: "Solemne / Filosófico",
+          readingSpeed: 25,
+          continuousAmbiance: "Ambiente Cósmico Inmersivo",
+          musicGenre: "Score Orquestal Minimalista",
+        },
+        [ContentType.Texto]: {},
+        [ContentType.Imagen]: {},
+        [ContentType.Codigo]: {},
+      }
+    }
+  },
+   {
+    name: "preset-informe-eficiencia-energetica",
+    data: {
+      objective: "Generar un informe sobre la simulación de eficiencia energética de una vivienda, incluyendo diagnóstico inicial y potencial de mejora.",
+      tone: "Informativo / Técnico",
+      specifics: {
+        [ContentType.Texto]: {
+          type: "Informe Técnico",
+          audience: "Propietarios / Compradores Potenciales",
+        },
+        [ContentType.Imagen]: {},
+        [ContentType.Video]: {},
+        [ContentType.Audio]: {},
+        [ContentType.Codigo]: {},
+      }
+    }
+  },
+  {
+    name: "Resumen Ejecutivo de Due Diligence",
+    data: {
+      objective: "Crear un resumen ejecutivo conciso a partir de un informe completo de diligencia debida.",
+      tone: "Profesional / Analítico",
+      specifics: {
+        [ContentType.Texto]: {
+          type: "Resumen Ejecutivo",
+          audience: "Inversores (Capital Riesgo), Equipo de Dirección",
+          uvp: "Extrae los hallazgos clave, riesgos, oportunidades y el veredicto final del informe completo para una rápida toma de decisiones."
+        },
+        [ContentType.Imagen]: {},
+        [ContentType.Video]: {},
+        [ContentType.Audio]: {},
+        [ContentType.Codigo]: {},
+      }
+    }
+  },
+  {
+    name: "Presentación para Comité de Inversión",
+    data: {
+      objective: "Convertir un informe de diligencia debida en una presentación de 10 diapositivas para un comité de inversión.",
+      tone: "Persuasivo / Directo",
+      specifics: {
+        [ContentType.Texto]: {
+          type: "Pitch de Inversión (Llamada a la Acción)",
+          audience: "Comité de Inversión",
+          uvp: "Formatea los puntos más importantes del informe en un formato de diapositivas claro y convincente, enfocado en la tesis de inversión, los riesgos clave y las condiciones para proceder."
+        },
+        [ContentType.Imagen]: {},
+        [ContentType.Video]: {},
+        [ContentType.Audio]: {},
+        [ContentType.Codigo]: {},
+      }
+    }
+  }
 ];

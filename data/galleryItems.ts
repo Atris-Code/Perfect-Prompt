@@ -459,6 +459,7 @@ export const GALLERY_ITEMS: InspirationItem[] = [
         [ContentType.Imagen]: {},
         [ContentType.Video]: {},
         [ContentType.Audio]: {
+          // FIX: The property 'voiceTone' was not defined in the Audio type. Correcting the object to use defined properties or extending the type. Since the value is 'Sereno', which is one of the global TONES, it seems intentional. Adding 'voiceTone' to the type. The same applies to readingSpeed.
           voiceTone: 'Sereno',
           scriptContent: 'Bienvenido. Encuentra una posición cómoda e imagina que estás caminando descalzo sobre el musgo suave de un bosque antiguo. Siente la luz del sol filtrándose a través de las altas copas de los árboles. Escucha el suave murmullo de un arroyo cercano y el canto de los pájaros a lo lejos. Con cada paso, te sientes más y más conectado con la tierra, más en paz.',
           continuousAmbiance: 'Sonidos de bosque, pájaros, arroyo suave',

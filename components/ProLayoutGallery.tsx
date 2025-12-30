@@ -28,8 +28,14 @@ const LayoutPreview: React.FC<{ layout: ProLayout }> = ({ layout }) => {
         const typeClass = struct.type === 'grid' ? 'grid' : 'flex';
         const directionClass = struct.direction === 'col' ? 'flex-col' : struct.direction === 'row' ? 'flex-row' : '';
         
-        // JIT friendly classes
-        const columnsClass = `grid-cols-${struct.columns}`;
+        const getColumnsClass = (columns?: number) => {
+            switch (columns) {
+                case 2: return 'grid-cols-2';
+                case 12: return 'grid-cols-12';
+                default: return '';
+            }
+        };
+        const columnsClass = getColumnsClass(struct.columns);
         
         const containerClasses = [
             typeClass,
@@ -47,7 +53,18 @@ const LayoutPreview: React.FC<{ layout: ProLayout }> = ({ layout }) => {
                     
                     let wrapperClasses = 'flex min-h-0 min-w-0';
                     if ('span' in item && struct.type === 'grid') {
-                         const spanClass = `col-span-${item.span}`;
+                        const getSpanClass = (span?: number) => {
+                            switch(span) {
+                                case 1: return 'col-span-1';
+                                case 2: return 'col-span-2';
+                                case 3: return 'col-span-3';
+                                case 4: return 'col-span-4';
+                                case 8: return 'col-span-8';
+                                case 9: return 'col-span-9';
+                                default: return '';
+                            }
+                        };
+                        const spanClass = getSpanClass(item.span);
                          wrapperClasses += ` ${spanClass}`;
                     }
                     if ('className' in item) {

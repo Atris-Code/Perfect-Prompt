@@ -34,12 +34,14 @@ export const TEXT_TYPES = [
   'Crítica Cinematográfica / Reseña Visual',
   'Pitch de Inversión (Llamada a la Acción)',
   'Protocolo Experimental (Metodología)',
+  'Protocolo de Contingencia',
   'Email formal',
   'Artículo de blog',
   'Publicación para Redes Sociales',
   'Ficha Técnica de Proceso',
   'Informe de Sostenibilidad (ESG)',
   'Comunicado de Prensa',
+  'Informe de Diligencia Debida',
 ];
 
 export const TARGET_AUDIENCES = [

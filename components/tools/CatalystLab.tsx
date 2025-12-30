@@ -294,9 +294,10 @@ export const CatalystLab: React.FC = () => {
         setSynthesizedCatalyst(null);
         setAiAnalysis('');
         
-        await new Promise(resolve => setTimeout(resolve, 50));
+        await new Promise(resolve => setTimeout(resolve, 500));
 
         try {
+            // Step 1: Simulate Catalyst Properties
             let frameworkType: FrameworkType;
             if (siAlRatio > 40) frameworkType = 'MFI';
             else if (siAlRatio > 15) frameworkType = 'AEL';
@@ -310,7 +311,7 @@ export const CatalystLab: React.FC = () => {
             let microporeVolume = 0.18 - (siAlRatio / 500);
             if (templateType === 'Orgánico (TPAOH)') microporeVolume *= 1.15;
             if (templateType === 'Inorgánico (Na+)') microporeVolume *= 0.9;
-            if (frameworkType === 'AST') microporeVolume *= 0.1;
+            if (frameworkType === 'AST') microporeVolume *= 0.1; // AST has smaller pores generally
 
             let mesoporeVolume = 0.01;
             if (calcinationTemp > 600) mesoporeVolume += (calcinationTemp - 600) * 0.0005;
@@ -344,6 +345,7 @@ export const CatalystLab: React.FC = () => {
             };
             setSynthesizedCatalyst(catalyst);
             
+            // Step 2: Get AI Analysis
             const analysis = await getAiCatalystAnalysis(catalyst);
             setAiAnalysis(analysis);
 
